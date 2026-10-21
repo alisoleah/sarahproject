@@ -1,0 +1,157 @@
+PowerStore Role Implementation Tracker
+
+Overview
+This document tracks all steps and changes for implementing the PowerStore role to match Unity role functionality for host registration.
+
+Implementation Steps
+
+Step 1: Create Role Directory Structure COMPLETED
+- Command: cd /home/sarah_gouda/curia_phase1/roles && ansible-galaxy role init powerstore
+- Status: Completed
+- Created Directory: /home/sarah_gouda/curia_phase1/roles/powerstore/
+- Structure Created:
+  - /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/
+  - /home/sarah_gouda/curia_phase1/roles/powerstore/defaults/
+  - /home/sarah_gouda/curia_phase1/roles/powerstore/vars/
+  - /home/sarah_gouda/curia_phase1/roles/powerstore/meta/
+  - /home/sarah_gouda/curia_phase1/roles/powerstore/handlers/
+  - /home/sarah_gouda/curia_phase1/roles/powerstore/README.md
+  - /home/sarah_gouda/curia_phase1/roles/powerstore/tests/
+
+Step 2: Add PowerStore Variables to storage_array_vars.yml COMPLETED
+- File to Modify: /home/sarah_gouda/curia_phase1/playbooks/vars/storage_array_vars.yml
+- Status: Completed
+- Variables Added:
+  powerstore-dc_array_ip: "ip"
+  powerstore-dc_user: "admin"
+  powerstore-dc_password: "pass"
+  powerstore-dc_validate_certs: false
+- Notes: Based on PowerStore module documentation, parameters are: array_ip, user, password, validate_certs
+
+Step 3: Create roles/powerstore/defaults/main.yml COMPLETED
+- File to Create: /home/sarah_gouda/curia_phase1/roles/powerstore/defaults/main.yml
+- Status: Completed
+- Variables Defined:
+  ---
+  state_present: "present"
+  initiator_state_present: "present-in-host"
+  validate_certs: false
+- Notes: PowerStore uses present-in-host for initiator_state (different from Unity)
+
+Step 4: Create roles/powerstore/tasks/get_host.yml COMPLETED AND TESTED
+- File to Create: /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/get_host.yml
+- Status: Completed and Tested
+- Purpose: Check if host exists on PowerStore
+- Module to Use: dellemc.powerstore.info with gather_subset: ["host"]
+- Variables to Set:
+  - found_host_flag - Boolean: host exists on PowerStore
+  - found_host - Host name if found
+- Reference: Based on /home/sarah_gouda/curia_phase1/roles/unity/tasks/get_host.yml
+- Documentation: /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/get_host.README.md
+- Test Results: Connection successful, retrieved 34 hosts, all functionality working
+- Key Finding: PowerStore uses host_results.Hosts (capital H), not lowercase
+
+Step 4.5: Create Test Files for get_host.yml COMPLETED
+- Test Vars File: /home/sarah_gouda/curia_phase1/playbooks/vars/powerstore_test_get_host_vars.yml
+- Test Playbook: /home/sarah_gouda/curia_phase1/playbooks/files/powerstore_test_get_host.yml
+- Status: Completed
+- Purpose: Test PowerStore connection and get_host.yml functionality
+- What it tests:
+  - Connection to PowerStore
+  - Listing all hosts
+  - Finding a specific host
+  - Verifying structure of host_results
+
+Step 5: Create roles/powerstore/tasks/find_initiator.yml COMPLETED
+- File to Create: /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/find_initiator.yml
+- Status: Completed
+- Purpose: Check if initiator exists on PowerStore
+- Variables:
+  - Input: item (from loop), fc_initiators (list of initiators on PowerStore)
+  - Output: found_initiator_list (accumulated list)
+- Reference: Based on /home/sarah_gouda/curia_phase1/roles/unity/tasks/find_initiator.yml
+- Note: Same logic as Unity - searches for initiator in PowerStore's initiator list
+
+Step 6: Create roles/powerstore/tasks/create_host_with_initiators.yml COMPLETED
+- File to Create: /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/create_host_with_initiators.yml
+- Status: Completed
+- Purpose: Create host on PowerStore with FC initiators
+- Module to Use: dellemc.powerstore.host
+- Key Parameters:
+  - array_ip - PowerStore IP
+  - user - Username
+  - password - Password
+  - host_name - Host name
+  - os_type - Operating system type
+  - initiators - List of FC WWNs (from found_initiator_list)
+  - initiator_state - "present-in-host"
+  - state - "present"
+- OS Type Mapping: Verified - Windows, Linux, ESXi (same as Unity)
+- Reference: Based on /home/sarah_gouda/curia_phase1/roles/unity/tasks/create_host_with_initiators.yml
+- Note: Uses REST API to query all FC initiators on PowerStore (similar to Unity's fc_initiator subset), then matches against combined_initiators_list from zoning
+
+Step 6.5: Create Test for Initiator Structure COMPLETED
+- Test Playbook: /home/sarah_gouda/curia_phase1/playbooks/files/powerstore_test_create_host.yml
+- Status: Completed
+- Purpose: Check how PowerStore stores initiator information in host objects
+- What it tests:
+  - Get host info from PowerStore
+  - Check structure of host objects
+  - Verify if host_initiators field exists
+  - Show initiator details if available
+- Test command: ansible-playbook powerstore_test_create_host.yml
+
+Step 7: Create roles/powerstore/tasks/main.yml COMPLETED
+- File to Modify: /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/main.yml
+- Status: Completed (empty file - tasks are called directly)
+- Purpose: Main task file (empty - tasks are called directly from playbooks)
+
+Step 8: Create playbooks/tasks/powerstore_map_volume_prepare.yml COMPLETED
+- File to Create: /home/sarah_gouda/curia_phase1/playbooks/tasks/powerstore_map_volume_prepare.yml
+- Status: Completed
+- Purpose: Orchestration task for host registration workflow
+- Workflow:
+  1. Run zoning workflow (existing zoning role)
+  2. Check if host exists on PowerStore
+  3. If not found:
+     - Get host initiators from switches
+     - Create host on PowerStore
+  4. Track success/failure
+- Reference: Based on /home/sarah_gouda/curia_phase1/playbooks/tasks/unity_map_volume_prepare.yml
+
+Step 9: Test the Implementation COMPLETED
+- Status: Completed
+- Test Result: Host creation successful
+- Test Details:
+  - Created host "SUNT5120-B" on PowerStore
+  - Used actual FC initiators: 10:00:00:00:c9:b6:63:92, 10:00:00:00:c9:b6:63:56
+  - Verified host exists after creation
+- Test Playbook: powerstore_test_host_only.yml (can be deleted)
+
+Step 10: Documentation COMPLETED
+- Status: Completed
+- Documentation: README files created for each task
+- Tracker: Implementation tracker maintained
+- Test Files: Test playbooks created (can be cleaned up)
+
+Key Differences from Unity
+
+Aspect: Unity vs PowerStore
+- Connection Parameter: Unity uses unispherehost, PowerStore uses array_ip
+- Username Parameter: Unity uses username, PowerStore uses user
+- Initiator State: Unity uses present, PowerStore uses present-in-host
+- Module: Unity uses dellemc.unity.host, PowerStore uses dellemc.powerstore.host
+- Info Module: Unity uses dellemc.unity.info, PowerStore uses dellemc.powerstore.info
+
+Research Completed
+
+- Install dellemc.powerstore Ansible collection
+- Verify PowerStore OS type enumeration values (Windows, Linux, ESXi, AIX, HP-UX, Solaris)
+- Check if PowerStore has different initiator format requirements (uses combined_initiators_list from zoning)
+- Verify OS type mapping (Linux, Windows, ESXi to PowerStore format) (same as Unity)
+
+Notes
+
+- Zoning role is array-agnostic - no changes needed
+- Testing can be done without switches by providing manual initiator list
+- All file paths are absolute for clarity

@@ -1,0 +1,41 @@
+---
+
+# Play 1: Run zoning tasks on switches
+- name: Create Zones Play
+  hosts: switch1,switch2
+  gather_facts: false
+
+  vars_files:
+    - ../vars/unity_map_volume_to_single_host_vars.yml
+    - ../vars/storage_array_vars.yml
+    - ../vars/vcenter_vars.yml
+
+  tasks:
+    - name: Create the host aliases and zones on the switches
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: workflow.yml
+
+    - name: Find the host on the array
+      ansible.builtin.include_role:
+        name: unity
+        tasks_from: get_host.yml
+
+    # If the host is not found on the array
+    - name: Get host initiators
+      ansible.builtin.include_role:
+        name: unity
+        tasks_from: get_host_initiators.yml
+      when: not found_host_flag
+
+    - name: Create host in the array
+      ansible.builtin.include_role:
+        name: unity
+        tasks_from: create_host_with_initiators.yml
+      when: not found_host_flag
+
+    - name: Map volume
+      ansible.builtin.include_role:
+        name: unity
+        tasks_from: map_volume.yml
+

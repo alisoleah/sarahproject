@@ -1,0 +1,5 @@
+node_hostname: "hostname"
+array_hostname: "powerstore-array"
+array_type: "powerstore"
+vol_name: "volume_name"
+hlu: ""  # Optional: Logical Unit Number (leave empty for auto-assignment)

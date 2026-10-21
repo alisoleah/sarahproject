@@ -1,0 +1,42 @@
+---
+- name: Attempt host zoning and creation block
+  block:
+    - name: Ensure host aliases and zones exist on switches (create if not present)
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: workflow.yml
+
+    - name: Find the host on the array
+      ansible.builtin.include_role:
+        name: powerstore
+        tasks_from: get_host.yml
+
+    # If the host is not found on the array
+    - name: Get host initiators
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: get_host_initiators.yml
+      when: not found_host_flag
+
+    - name: Create host in the array
+      ansible.builtin.include_role:
+        name: powerstore
+        tasks_from: create_host_with_initiators.yml
+      when: not found_host_flag
+
+    - name: Add found_host to hosts_list
+      ansible.builtin.set_fact:
+        hosts_list: "{{ hosts_list + [found_host] }}"
+
+    - name: Add to success_hosts list
+      ansible.builtin.set_fact:
+        success_hosts: "{{ success_hosts + [node_hostname] }}"
+
+  rescue:
+    - name: Log error and add to failed_hosts list
+      ansible.builtin.debug:
+        msg: "Preparation failed for {{ node_hostname }}"
+
+    - name: Add to failed_hosts list
+      ansible.builtin.set_fact:
+        failed_hosts: "{{ failed_hosts + [node_hostname] }}"

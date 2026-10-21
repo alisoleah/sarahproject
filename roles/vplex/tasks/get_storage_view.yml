@@ -1,0 +1,64 @@
+---
+- name: Get Storage View Rule
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Get list of storage views for Array 1 Cluster
+      dellemc.vplex.dellemc_vplex_gatherfacts:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_1_cluster }}"
+        gather_subset:
+          - stor_view
+      register: array_1_storage_views
+
+    - name: Get list of storage views for Array 2 Cluster
+      dellemc.vplex.dellemc_vplex_gatherfacts:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_2_cluster }}"
+        gather_subset:
+          - stor_view
+      register: array_2_storage_views
+      when: is_metro
+
+    - name: Get current host storage views for array 1
+      ansible.builtin.set_fact:
+        array_1_current_host_storage_views: >-
+          {{
+            array_1_storage_views.StorageViews
+            | select('match', '.*' ~ (node_hostname), ignorecase=True)
+            | list
+          }}
+
+    - name: Get current host storage views for array 2
+      ansible.builtin.set_fact:
+        array_2_current_host_storage_views: >-
+          {{
+            array_2_storage_views.StorageViews
+            | select('match', '.*' ~ (node_hostname), ignorecase=True)
+            | list
+          }}
+      when: is_metro
+
+    - name: Set current_host_storage_view variable 
+      ansible.builtin.set_fact:
+        current_host_storage_views: >-
+          {{
+            (array_1_current_host_storage_views + array_2_current_host_storage_views)
+            if is_metro else array_1_current_host_storage_views
+          }}
+
+    - name: Set storage_view_flag variable
+      ansible.builtin.set_fact:
+        storage_view_found_flag: "{{ current_host_storage_views | length > 0 }}"
+
+  rescue:
+    - name: Fail if unable to get storage views
+      ansible.builtin.fail:
+        msg: "Unable to obtain the storage views from the vplex array {{ vplex_array }}."
+

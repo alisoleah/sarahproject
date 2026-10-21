@@ -1,0 +1,35 @@
+---
+- name: Map volume to hosts
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Map volume to hosts by host_name
+      dellemc.unity.volume:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ validate_certs }}"
+        vol_name: "{{ vol_name }}"
+        host_name: "{{ item }}"
+        hlu: "{{ lun_id if lun_id is defined and lun_id is not none else omit }}"
+        mapping_state: "{{ state_mapped }}"
+        state: "{{ state_present }}"
+      loop: "{{ hosts_list }}"
+      register: map_result
+      ignore_errors: true
+
+    - name: Evaluate mapping results
+      ansible.builtin.set_fact:
+        success_hosts: "{{  map_result.results | selectattr('failed', 'equalto', false) | map(attribute='item') | list }}"
+        failed_hosts: "{{ failed_hosts + map_result.results | selectattr('failed', 'equalto', true) | map(attribute='item') | list }}"
+
+    - name: Print mapping results summary
+      ansible.builtin.debug:
+        msg: "Job succeeded for all hosts."
+      when: failed_hosts | length == 0
+
+    - name: Print mapping results if failure happens
+      ansible.builtin.fail:
+        msg: "Job succeeded for {{ success_hosts }} and failed for {{ failed_hosts }}"
+      when: failed_hosts | length > 0
+

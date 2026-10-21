@@ -1,0 +1,93 @@
+---
+- name: Find the initiators of the host and create a host in PowerStore
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Pause for 60 seconds
+      ansible.builtin.pause:
+        seconds: 60
+
+    - name: Get fc initiators Details from PowerStore via REST API
+      ansible.builtin.uri:
+        url: "https://{{ lookup('vars', array_hostname + '_array_ip') }}/api/rest/host?select=id,name,host_initiators"
+        method: GET
+        user: "{{ lookup('vars', array_hostname + '_user') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        force_basic_auth: true
+        validate_certs: "{{ lookup('vars', array_hostname + '_validate_certs') }}"
+        status_code: 200
+        return_content: true
+      register: host_api_results
+
+    - name: Parse host API results to extract all FC initiators
+      ansible.builtin.set_fact:
+        all_fc_initiators: "{{ host_api_results.json | map(attribute='host_initiators') | flatten | selectattr('port_type', 'equalto', 'FC') | map(attribute='port_name') | list }}"
+
+    - name: Print all FC initiators found on PowerStore
+      ansible.builtin.debug:
+        msg: "All FC initiators on PowerStore: {{ all_fc_initiators }}"
+
+    - name: Find which of the host's initiators exist on PowerStore
+      ansible.builtin.set_fact:
+        found_initiator_list: "{{ combined_initiators_list | select('in', all_fc_initiators) | list }}"
+
+    - name: Print initiator match status
+      ansible.builtin.debug:
+        msg: "{{ item }}: {{ 'FOUND on PowerStore' if item in all_fc_initiators else 'NOT FOUND on PowerStore' }}"
+      loop: "{{ combined_initiators_list }}"
+
+    - name: Print summary
+      ansible.builtin.debug:
+        msg: "Found {{ found_initiator_list | length }} of {{ combined_initiators_list | length }} initiators on PowerStore"
+
+    - name: Fall back to combined_initiators_list if no matches found
+      ansible.builtin.set_fact:
+        found_initiator_list: "{{ combined_initiators_list }}"
+      when: found_initiator_list | length == 0
+
+    - name: Print final initiator list to be used
+      ansible.builtin.debug:
+        msg: "Final initiator list: {{ found_initiator_list }}"
+
+    - name: Set node_type mapping
+      ansible.builtin.set_fact:
+        node_type_mapped: >
+          {% if node_type == 'windows' %}
+            Windows
+          {% elif node_type == 'linux' %}
+            Linux
+          {% elif node_type == 'esxi' %}
+            ESXi
+          {% else %}
+            failure
+          {% endif %}
+
+    - name: Strip whitespace and newline from node_type_mapped
+      ansible.builtin.set_fact:
+        node_type_mapped: "{{ node_type_mapped | trim }}"
+
+    - name: Fail if node_type is not valid
+      ansible.builtin.fail:
+        msg: "Invalid node_type: {{ node_type }}"
+      when: node_type_mapped == 'failure'
+
+    - name: Create Host with Initiators on PowerStore
+      dellemc.powerstore.host:
+        array_ip: "{{ lookup('vars', array_hostname + '_array_ip') }}"
+        user: "{{ lookup('vars', array_hostname + '_user') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ lookup('vars', array_hostname + '_validate_certs') }}"
+        host_name: "{{ node_hostname }}"
+        os_type: "{{ node_type_mapped }}"
+        initiators: "{{ found_initiator_list }}"
+        initiator_state: "{{ initiator_state_present }}"
+        state: "{{ state_present }}"
+
+    - name: Set the found_host variable to the created host
+      ansible.builtin.set_fact:
+        found_host: "{{ node_hostname }}"
+
+  rescue:
+    - name: Failure message if unable to create host
+      ansible.builtin.fail:
+        msg: "Unable to create a host for the node {{ node_hostname }} on the array {{ array_hostname }}."

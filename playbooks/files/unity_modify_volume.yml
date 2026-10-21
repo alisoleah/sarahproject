@@ -1,0 +1,21 @@
+---
+- name: Modify volume attributes
+  hosts: localhost
+  strategy: linear
+  gather_facts: false
+  roles:
+    - unity
+    - zoning
+    - common
+
+  vars_files:
+    - ../vars/unity_modify_volume_vars.yml
+    - ../vars/storage_array_vars.yml
+    - ../vars/vcenter_vars.yml
+
+  tasks:
+    - name: Modify volume
+      ansible.builtin.include_role:
+        name: unity
+        tasks_from: modify_volume.yml
+

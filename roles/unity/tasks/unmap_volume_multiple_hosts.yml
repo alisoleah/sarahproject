@@ -1,0 +1,34 @@
+---
+- name: Unmap volume from hosts
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Unmap multiple hosts to a Volume
+      dellemc.unity.volume:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ validate_certs }}"
+        vol_name: "{{ vol_name }}"
+        host_name: "{{ item }}"
+        mapping_state: "{{ state_unmapped }}"
+        state: "{{ state_present }}"
+      loop: "{{ hosts_list }}"
+      register: unmap_result
+      ignore_errors: true
+
+    - name: Evaluate unmapping results
+      ansible.builtin.set_fact:
+        success_hosts: "{{ unmap_result.results | selectattr('failed', 'equalto', false) | map(attribute='item') | list }}"
+        failed_hosts: "{{ unmap_result.results | selectattr('failed', 'equalto', true) | map(attribute='item') | list }}"
+
+    - name: Print unmapping results summary
+      ansible.builtin.debug:
+        msg: "Job succeeded for all hosts."
+      when: failed_hosts | length == 0
+
+    - name: Print unmapping results if failure happens
+      ansible.builtin.fail:
+        msg: "Job succeeded for {{ success_hosts }} and failed for {{ failed_hosts }}"
+      when: failed_hosts | length > 0   
+

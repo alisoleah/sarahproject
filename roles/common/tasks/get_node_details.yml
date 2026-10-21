@@ -1,0 +1,32 @@
+---
+- name: Get Node Details from user
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Pause for Node IP
+      ansible.builtin.pause:
+        prompt: "Please enter the node IP Address"
+      register: ansible_pause_result
+
+    - name: Set Node IP from user input
+      ansible.builtin.set_fact:
+        node_ip: "{{ ansible_pause_result.user_input }}"
+
+    - name: Pause for Node username
+      ansible.builtin.pause:
+        prompt: 'Please enter the node username example: "(curia\s_account)"'
+      register: ansible_pause_result
+
+    - name: Set username from user input
+      ansible.builtin.set_fact:
+        node_user: "{{ ansible_pause_result.user_input }}"
+
+    - name: Pause for node password
+      ansible.builtin.pause:
+        prompt: "Please enter the node password"
+        echo: false
+      register: ansible_pause_result
+
+    - name: Set Node IP from user password
+      ansible.builtin.set_fact:
+        node_password: "{{ ansible_pause_result.user_input }}"

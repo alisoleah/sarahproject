@@ -1,0 +1,27 @@
+---
+- name: Create Volume
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Modify block volume
+      dellemc.unity.volume:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ validate_certs }}"
+        vol_name: "{{ vol_name }}"
+        size: "{{ size_gb }}"
+        cap_unit: "{{ cap_gb }}"
+        is_thin: "{{ is_thin }}"
+        compression: "{{ compression }}"
+        advanced_dedup: "{{ advanced_dedup }}"
+        state: "{{ state_present }}"
+
+    - name: Display success message
+      ansible.builtin.debug:
+        msg: "The volume is modified successfully."
+  rescue:
+    - name: Fail if cannot find storage pools
+      ansible.builtin.fail:
+        msg: "Unable to modify the volume."
+

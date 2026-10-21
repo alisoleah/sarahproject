@@ -1,0 +1,10 @@
+---
+# Test variables for PowerStore host creation workflow
+node_hostname: "SUNT5120-B"  # Change to a host you want to delete and recreate
+node_type: "linux"
+array_hostname: "powerstore-dc"
+array_type: "powerstore"
+# Manual initiator list for testing (replace with actual WWNs from your environment)
+combined_initiators_list:
+  - "10:00:00:00:c9:b6:63:92"
+  - "10:00:00:00:c9:b6:63:56"

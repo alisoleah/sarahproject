@@ -1,0 +1,47 @@
+---
+- name: Get and process pWWNs from FCNS database
+  block:
+    - name: Get pwwns from fcns database
+      cisco.nxos.nxos_command:
+        commands: sh fcns database detail  | grep "port-wwn (vendor)" | grep -v "permanent"
+      register: fcns_database_result
+
+    - name: Process the pwwns from FCNS database
+      ansible.builtin.set_fact:
+        fcns_pwwns_list: "{{ fcns_database_result.stdout_lines[0] | extract_port_names }}"
+      delegate_to: localhost
+
+    - name: Extract node PWWNs on the switch
+      ansible.builtin.set_fact:
+        switch_node_pwwn_list: "{{ fcns_pwwns_list | intersect(node_pwwn_list) }}"
+      delegate_to: localhost
+
+    - name: Set Empty flag if no PWWNs for the node found on the switch
+      ansible.builtin.set_fact:
+        pwwn_list_empty_flag: "{{ switch_node_pwwn_list | length == 0 }}"
+      delegate_to: localhost
+
+    - name: Extract node PWWNs on the switch
+      ansible.builtin.debug:
+        msg: "No PWWns for the node {{ node_hostname }} found on the switch {{ inventory_hostname }}. Skipping..."
+      delegate_to: localhost
+      when: pwwn_list_empty_flag
+
+    - name: Check condition and end play if true
+      ansible.builtin.meta: end_play
+      delegate_to: localhost
+      when: pwwn_list_empty_flag
+
+    - name: Map switch_node_pwwn_list to corresponding vmhba
+      ansible.builtin.set_fact:
+        switch_node_pwwn_list_vmhba: >-
+          {{
+            switch_node_pwwn_list | map('extract', dict(node_pwwn_list | zip(node_pwwn_list_vmhba)))
+          }}
+      when: node_type == 'esxi'
+
+  rescue:
+    - name: Failure in FCNS database pwwn processing
+      ansible.builtin.fail:
+        msg: "Unable to obtain or process PWWNs from FCNS database on the switch {{ inventory_hostname }}"
+

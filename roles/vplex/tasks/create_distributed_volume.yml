@@ -1,0 +1,25 @@
+---
+- name: Create distributed volume in VPLEX
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Set distributed volume name
+      set_fact:
+        distributed_virtual_volume: "distributed_virtual_volume_{{ volume_name }}"
+
+    - name: Create a distributed virtual volume
+      dellemc.vplex.dellemc_vplex_distributed_virtual_volume:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        distributed_device_name: "{{ distributed_device }}"
+        thin_enable: "{{ is_thin }}"
+        distributed_virtual_volume_name: "{{ distributed_virtual_volume }}"
+        state: "{{ vplex_state_present }}"
+
+  rescue:
+    - name: Fail if unable to create distributed volume.
+      ansible.builtin.fail:
+        msg: "Unable to create distributed volume."
+

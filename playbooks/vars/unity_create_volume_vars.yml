@@ -1,0 +1,19 @@
+# If you wanna create a volume without mapping set hosts to an empty list
+#map_hosts: []
+map_hosts: #host.type can be windows or linux or esxi     
+  - hostname: "name"
+    type: "esxi"
+  - hostname: "name"
+    type: "windows"
+array_hostname: "name"
+array_type: "unity"
+vol_name: "test_volume_auto_uat06"
+description: "my description"
+pool_name: "Pool0"
+#lun_id: 99
+size_gb: 10
+is_thin: true
+compression: true
+advanced_dedup: false
+vcenter: "name" #add if the host is an esxi host
+

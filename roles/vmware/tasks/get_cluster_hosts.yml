@@ -1,0 +1,23 @@
+---
+- name: Find the hostnames of a vsphere cluster
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Gather vSphere cluster info
+      community.vmware.vmware_cluster_info:
+        hostname: "{{ lookup('vars', vcenter + '_vcenter_hostname') }}"
+        username: "{{ lookup('vars', vcenter + '_vcenter_username') }}"
+        password: "{{ lookup('vars', vcenter + '_vcenter_password') }}"
+        validate_certs: "{{ validate_certs }}"
+        cluster_name: "{{ vcenter_cluster_name }}"
+      register: cluster_facts
+
+    - name: Obtain the esxi hosts in the cluster
+      ansible.builtin.set_fact:
+        vcenter_cluster_hosts: "{{ cluster_facts.clusters[vcenter_cluster_name].hosts | map(attribute='name') | list }}"
+
+  rescue:
+    - name: Failure message if unable to create find the hostnames of a vsphere cluster
+      ansible.builtin.fail:
+        msg: "Unable to find the hosts of the vsphere cluster {{ vcenter_cluster_name }} in the vcenter {{ vcenter }}."
+

@@ -1,0 +1,21 @@
+---
+- name: Create Extent in VPLEX
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Create Extent using storage volume name
+      dellemc.vplex.dellemc_vplex_extent:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ vplex_cluster }}"
+        storage_volume_name: "{{ vplex_storage_volume }}"
+        extent_name: "extent_{{ vol_name }}_{{ vplex_cluster }}"
+        state: "{{ vplex_state_present }}"
+
+  rescue:
+    - name: Fail if unable to create extent
+      ansible.builtin.fail:
+        msg: "Unable to create extent for the storage volume {{ vplex_storage_volume }}."
+

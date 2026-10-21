@@ -1,0 +1,5 @@
+array_hostname: "host1"
+vol_name: "test2002"
+node_hostname: "sas1"
+node_type: "windows" #esxi or windows or linux
+

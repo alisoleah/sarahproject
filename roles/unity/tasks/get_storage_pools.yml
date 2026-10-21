@@ -1,0 +1,26 @@
+---
+- name: Get Unity Array Storage Pools
+  delegate_to: localhost
+  block:
+    - name: Get Storage Pool Details
+      dellemc.unity.info:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ validate_certs }}"
+        gather_subset:
+          - storage_pool
+      register: storage_pools
+
+    - name: Obtain the names of the storage pools
+      ansible.builtin.set_fact:
+        pool_names: "{{ storage_pools.Storage_Pools | map(attribute='name') | list }}"
+
+    - name: Display storage pool names
+      ansible.builtin.debug:
+        msg: "The Following storage pools are available on the array {{ array_hostname }}: {{ pool_names }}"
+  rescue:
+    - name: Fail if cannot find storage pools
+      ansible.builtin.fail:
+        msg: "Unable to obtain the storage pools on the array {{ array_hostname }}"
+

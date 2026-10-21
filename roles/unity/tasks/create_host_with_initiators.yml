@@ -1,0 +1,78 @@
+---
+- name: Find the initiators of the host and create a host in Unity
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Pause for 60 seconds
+      ansible.builtin.pause:
+        seconds: 60
+
+    - name: Get fc initiators Details
+      dellemc.unity.info:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ validate_certs }}"
+        gather_subset:
+          - fc_initiator
+      register: fc_initiator_results
+
+    - name: Obtain the names of the fc initiators
+      ansible.builtin.set_fact:
+        fc_initiators: "{{ fc_initiator_results.FC_initiators | map(attribute='WWN') | list }}"
+
+    - name: Initalize found initiator list
+      ansible.builtin.set_fact:
+        found_initiator_list: []
+
+    - name: Find initiator
+      ansible.builtin.include_tasks: find_initiator.yml
+      with_items: "{{ combined_initiators_list }}"
+   
+    - name: Print found initiator list
+      ansible.builtin.debug:
+        msg: "{{ found_initiator_list }}"
+
+    - name: Set node_type mapping
+      ansible.builtin.set_fact:
+        node_type_mapped: >
+          {% if node_type == 'windows' %}
+            Windows Server
+          {% elif node_type == 'linux' %}
+            Linux
+          {% elif node_type == 'esxi' %}
+            VMware ESXi
+          {% else %}
+            failure
+          {% endif %}
+
+    - name: Strip whitespace and newline from node_type_mapped
+      ansible.builtin.set_fact:
+        node_type_mapped: "{{ node_type_mapped | trim }}"
+
+    - name: Fail if node_type is not valid
+      ansible.builtin.fail:
+        msg: "Invalid node_type: {{ node_type }}"
+      when: node_type_mapped == 'failure'
+
+    - name: Create Host with Initiators
+      dellemc.unity.host:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ validate_certs }}"
+        host_name: "{{ node_hostname }}"
+        host_os: "{{ node_type_mapped }}"
+        initiators: "{{ found_initiator_list }}"
+        initiator_state: "{{ initiator_state_present }}"
+        state: "{{ state_present }}"
+
+    - name: Set the found_host variable to the created host
+      ansible.builtin.set_fact:
+        found_host: "{{ node_hostname }}"
+
+  rescue:
+    - name: Failure message if unable to create host
+      ansible.builtin.fail:
+        msg: "Unable to create a host for the node {{ node_hostname }} on the array {{ array_hostname }}."
+

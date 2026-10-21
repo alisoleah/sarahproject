@@ -1,0 +1,21 @@
+---
+- name: Get unity array serial number
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Get unity serial number
+      unity_get_serial_number:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+      register: unity_info
+
+    - name: Set variable serial_number
+      ansible.builtin.set_fact:
+        serial_number: "{{ unity_info.serial_number }}"
+
+  rescue:
+    - name: Fail if cannot get serial number
+      ansible.builtin.fail:
+        msg: "Unable to obtain the serial number of the array {{ array_hostname }}."
+

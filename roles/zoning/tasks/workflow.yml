@@ -1,0 +1,60 @@
+---
+# Step 1: Try to get stroage array aliases from the switch
+- name: Get storage array aliases
+  ansible.builtin.include_tasks: get_storage_array_aliases.yml
+
+# Step 2: Try to get node aliases from the switch
+- name: Get Aliases for the node
+  ansible.builtin.include_tasks: get_node_aliases.yml
+
+# Case 1: Node Aliases are not found on switch
+- name: When Aliases are not set
+  when: not node_aliases_found_flag
+  block:
+    # Case 1a: Node is an ESXi node
+    - name: Get Esxi node PWWNs
+      ansible.builtin.include_tasks: get_esxi_node_pwwns.yml
+      when: node_type | lower == 'esxi'
+
+    # Case 1b/1c: If node is a linux of windows node, get node details from user
+    - name: Get node details
+      ansible.builtin.include_tasks: ../../common/tasks/get_node_details.yml
+      when: node_type | lower in ["linux", "windows"]
+
+    # Case 1b: Node is a linux node
+    - name: Get Linux node PWWNs
+      ansible.builtin.include_tasks: get_lin_node_pwwns.yml
+      when: node_type | lower == 'linux'
+
+    # Case 1c: Node is a windows node
+    - name: Get Windows node PWWNs
+      ansible.builtin.include_tasks: get_win_node_pwwns.yml
+      when: node_type | lower == 'windows'
+
+    # Case 1: Obtain node PWWNs found on the switch
+    - name: Get PWWNs found on the switch for the node
+      ansible.builtin.include_tasks: get_fcns_found_pwwns.yml
+
+    # Case 1: Create device aliases for the node
+    - name: Create aliases for the device
+      ansible.builtin.include_tasks: create_device_aliases.yml
+
+    # Case 1: Obtain the created aliases
+    - name: Recheck Aliases from device-alias database after creation
+      ansible.builtin.include_tasks: recheck_node_aliases.yml
+
+    - name: This task runs if the aliases are not created properly
+      ansible.builtin.fail:
+        msg: "Unable to create device aliases for the node {{ node_hostname }}"
+      when: not recheck_node_aliases_found_flag
+
+  rescue:
+    - name: This task runs if the previous task fails
+      ansible.builtin.fail:
+        msg: "Unable to retrieve or create the node port aliases"
+
+# Case 2: Node Aliases are found on the switch.
+# Step 3: Create zones
+- name: Create Zones
+  ansible.builtin.include_tasks: create_zones.yml
+

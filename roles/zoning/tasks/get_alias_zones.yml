@@ -1,0 +1,30 @@
+---
+- name: Get Alias Zones
+  block:
+    - name: Get the zones that this host is a part of
+      cisco.nxos.nxos_command:
+        commands: sh zone member device-alias {{ item }} vsan {{ hostvars[inventory_hostname]['zone_vsan'] }} | grep zone
+      loop: "{{ node_aliases_list }}"
+      register: zone_member_result
+
+    - name: Set the zones output to a list
+      ansible.builtin.set_fact:
+        zones_output_list: "{{ zone_member_result.results | map(attribute='stdout_lines') | list | flatten }}"
+
+    - name: Filter out empty strings from the zones output list
+      ansible.builtin.set_fact:
+        zones_output_list: "{{ zones_output_list | reject('equalto', '') | list }}"
+
+    - name: Trim leading spaces and remove 'zone' from each string
+      ansible.builtin.set_fact:
+        zones_output_list: "{{ zones_output_list | map('regex_replace', '^\\s*zone\\s*', '') | list }}"
+
+    - name: Print the zones that the node is a part of
+      ansible.builtin.debug:
+        msg: "{{ zones_output_list }}"
+
+  rescue:
+    - name: Error Hanlding
+      ansible.builtin.fail:
+        msg: "Unable to find the zones that node {{ node_hostname }} is a part of."
+

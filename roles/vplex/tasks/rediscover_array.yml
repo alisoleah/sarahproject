@@ -1,0 +1,20 @@
+---
+- name: Rediscover StorageArray in VPLEX
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Rediscover StorageArray
+      dellemc.vplex.dellemc_vplex_array:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ vplex_cluster }}"
+        array_name: "{{ unity_storage_array_prefix }}{{ serial_number }}"
+        rediscover: true
+
+  rescue:
+    - name: Fail if unable to discover array
+      ansible.builtin.fail:
+        msg: "Unable to rediscover storage array {{ unity_storage_array_prefix }}{{ serial_number }}."
+

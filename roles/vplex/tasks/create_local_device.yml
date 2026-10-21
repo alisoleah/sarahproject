@@ -1,0 +1,24 @@
+---
+- name: Create local device in VPLEX
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Create a new raid-0 device
+      dellemc.vplex.dellemc_vplex_device:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ vplex_cluster }}"
+        geometry: "raid-0"
+        stripe_depth: "4KB"
+        device_name: "device_{{ vol_name }}_{{ vplex_cluster }}"
+        extents: ["extent_{{ vol_name }}_{{ vplex_cluster }}"]
+        extent_state: "present-in-device"
+        state: "{{ vplex_state_present }}"
+
+  rescue:
+    - name: Fail if unable to create device
+      ansible.builtin.fail:
+        msg: "Unable to create device for the storage extent extent_{{ vol_name }}_{{ vplex_cluster }}."
+

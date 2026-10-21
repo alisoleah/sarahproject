@@ -1,0 +1,10 @@
+---
+# defaults file for unity
+state_present: "present"
+state_absent: "absent"
+state_mapped: "mapped"
+state_unmapped: "unmapped"
+cap_gb: "GB"
+cap_tb: "TB"
+initiator_state_present: "present-in-host"
+

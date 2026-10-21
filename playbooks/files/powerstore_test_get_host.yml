@@ -1,0 +1,36 @@
+---
+# Test playbook for PowerStore get_host.yml
+# This tests:
+# 1. Connection to PowerStore
+# 2. Listing all hosts
+# 3. Finding a specific host
+# 4. Verifying the structure of host_results
+
+- name: Test PowerStore get_host.yml
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../vars/powerstore_test_get_host_vars.yml
+    - ../vars/storage_array_vars.yml
+
+  tasks:
+    - name: Test get_host.yml
+      ansible.builtin.include_tasks:
+        file: /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/get_host.yml
+
+    - name: Debug full host_results structure
+      ansible.builtin.debug:
+        var: host_results
+
+    - name: Debug host_names list
+      ansible.builtin.debug:
+        var: host_names
+
+    - name: Debug found_host
+      ansible.builtin.debug:
+        var: found_host
+
+    - name: Debug found_host_flag
+      ansible.builtin.debug:
+        var: found_host_flag

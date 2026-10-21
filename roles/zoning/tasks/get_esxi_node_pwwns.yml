@@ -1,0 +1,34 @@
+---
+- name: Gather and process ESXi host HBA WWNs
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Gather ESXi host facts
+      community.vmware.vmware_host_facts:
+        hostname: "{{ lookup('vars', vcenter + '_vcenter_hostname') }}"
+        username: "{{ lookup('vars', vcenter + '_vcenter_username') }}"
+        password: "{{ lookup('vars', vcenter + '_vcenter_password') }}"
+        esxi_hostname: "{{ node_hostname + domain }}"
+        validate_certs: "{{ validate_certs }}"
+        schema: "vsphere"
+        properties:
+          - config.storageDevice.hostBusAdapter
+      register: esxi_facts
+
+    - name: Initialize list for portWorldWideName values
+      ansible.builtin.set_fact:
+        node_pwwn_list: []
+        node_pwwn_list_vmhba: []
+
+    - name: Append portWorldWideName values to the list
+      ansible.builtin.set_fact:
+        node_pwwn_list: "{{ node_pwwn_list + [item.portWorldWideName | decimal_to_formatted_hex] }}"
+        node_pwwn_list_vmhba: "{{ node_pwwn_list_vmhba + [item.device] }}"
+      loop: "{{ esxi_facts.ansible_facts.config.storageDevice.hostBusAdapter }}"
+      when: "'portWorldWideName' in item"
+
+  rescue:
+    - name: Error to gather ESXi host PWWNs
+      ansible.builtin.fail:
+        msg: "Failed to gather or process ESXi HBA PWWNs for host {{ node_hostname }}"
+

@@ -1,0 +1,24 @@
+---
+- name: Set Variables for wwn, extent and device for array 1
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Set variables for array 1
+      ansible.builtin.set_fact:
+        array_1_name: "{{ unity_storage_array_prefix }}{{ serial_number }}"
+        array_1_cluster: "{{ vplex_cluster }}"
+        array_1_vol_name: "{{ vol_name }}"
+        array_1_storage_volume: "{{ vplex_storage_volume }}"
+        array_1_extent: "extent_{{ vol_name }}_{{ vplex_cluster }}"
+        array_1_device: "device_{{ vol_name }}_{{ vplex_cluster }}"
+
+    - name: Print variables for array 1
+      ansible.builtin.debug:
+        msg:
+          - "array_1_name: {{ array_1_name }}"
+          - "array_1_cluster: {{ array_1_cluster }}"
+          - "array_1_vol_name: {{ array_1_vol_name }}"
+          - "array_1_storage_volume: {{ array_1_storage_volume }}"
+          - "array_1_extent: {{ array_1_extent }}"
+          - "array_1_device: {{ array_1_device }}"
+

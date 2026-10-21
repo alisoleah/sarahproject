@@ -1,0 +1,30 @@
+---
+- name: Register initiators  in VPLEX
+  delegate_to: localhost
+  run_once: true
+  block:
+
+    - name: Rediscover Initiators for source cluster
+      dellemc.vplex.dellemc_vplex_initiator:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_1_cluster }}"
+        state: "{{ vplex_state_present }}"
+
+    - name: Rediscover Initiators for target cluster
+      dellemc.vplex.dellemc_vplex_initiator:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_2_cluster }}"
+        state: "{{ vplex_state_present }}"
+      when: is_metro
+
+  rescue:
+    - name: Failure message if unable to rediscover initiators
+      ansible.builtin.fail:
+        msg: "Unable to to rediscover initiators in vplex arrays."
+

@@ -1,0 +1,14 @@
+---
+- name: Get Vplex host in Unity
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Validate if array_hostname is invalid
+      ansible.builtin.fail:
+        msg: "array_hostname '{{ array_hostname }}' is invalid."
+      when: "'dc' not in array_hostname | lower and 'drc' not in array_hostname | lower"
+
+    - name: Set node_hostname to VPLEX-DC or VPLEX-DRC
+      ansible.builtin.set_fact:
+        vplex_unity_host: "{{ vplex_unity_host_drc if 'drc' in array_hostname | lower else vplex_unity_host_dc if 'dc' in array_hostname | lower else '' }}"
+

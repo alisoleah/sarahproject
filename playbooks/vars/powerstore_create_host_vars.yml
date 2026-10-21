@@ -1,0 +1,5 @@
+node_hostname: "hostname"
+node_type: "windows"  # esxi or windows or linux
+array_hostname: "powerstore-array"
+array_type: "powerstore"
+vcenter: ""  # add if the host is an esxi host

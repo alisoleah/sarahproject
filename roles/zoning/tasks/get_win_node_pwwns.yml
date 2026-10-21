@@ -1,0 +1,43 @@
+---
+- name: Get and process PWWNs for Windows host
+  block:
+    - name: Add a new Windows host to the inventory
+      ansible.builtin.add_host:
+        name: windows
+        ansible_host: "{{ node_ip }}"
+        ansible_user: "{{ node_user }}"
+        ansible_password: "{{ node_password }}"
+        ansible_connection: winrm
+        ansible_winrm_server_cert_validation: ignore
+        ansible_port: 5985
+        ansible_winrm_transport: ntlm
+      delegate_to: localhost
+
+    - name: Run command to get WWPN (Windows)
+      ansible.windows.win_shell: |
+        Get-InitiatorPort |
+        Where-Object { $_.ConnectionType -eq "Fibre Channel" } |
+        ForEach-Object {
+          $_.PortAddress -replace '(.{2})(.{2})(.{2})(.{2})(.{2})(.{2})(.{2})(.{2})', '$1:$2:$3:$4:$5:$6:$7:$8'
+        }
+      register: ps_output
+      changed_when: false
+      delegate_to: windows
+      ignore_errors: true
+      run_once: true
+
+    - name: Fail if WWPN retrieval failed
+      ansible.builtin.fail:
+        msg: "WWPN retrieval failed on Windows host"
+      when: ps_output.unreachable is defined or ps_output.failed
+
+    - name: Set node WWPN List (Windows)
+      ansible.builtin.set_fact:
+        node_pwwn_list: "{{ ps_output.stdout_lines | sort }}"
+      delegate_to: localhost
+
+  rescue:
+    - name: Error to gather Windows host PWWNs
+      ansible.builtin.fail:
+        msg: "Failed to gather or process Windows HBA PWWNs for host {{ node_hostname }}"
+

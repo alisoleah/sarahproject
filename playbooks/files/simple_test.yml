@@ -1,0 +1,43 @@
+---
+# Simple direct test
+- name: Simple PowerStore host creation test
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: Set variables directly
+      ansible.builtin.set_fact:
+        node_hostname: "SUNT5120-B"
+        node_type: "linux"
+        array_hostname: "powerstore-dc"
+        array_type: "powerstore"
+        combined_initiators_list:
+          - "10:00:00:00:c9:b6:63:92"
+          - "10:00:00:00:c9:b6:63:56"
+        state_present: "present"
+        initiator_state_present: "present-in-host"
+        validate_certs: false
+
+    - name: Debug node_hostname
+      ansible.builtin.debug:
+        msg: "node_hostname is: {{ node_hostname }}"
+
+    - name: Get host info from PowerStore
+      dellemc.powerstore.info:
+        array_ip: "{{ lookup('vars', array_hostname + '_array_ip') }}"
+        user: "{{ lookup('vars', array_hostname + '_user') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ lookup('vars', array_hostname + '_validate_certs') }}"
+        gather_subset:
+          - host
+        all_pages: true
+      register: host_results
+
+    - name: Check if SUNT5120-B exists
+      ansible.builtin.set_fact:
+        found_host_flag: "{{ 'SUNT5120-B' in (host_results.Hosts | map(attribute='name') | list) }}"
+
+    - name: Print result
+      ansible.builtin.debug:
+        msg: "SUNT5120-B exists: {{ found_host_flag }}"

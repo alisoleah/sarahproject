@@ -1,0 +1,21 @@
+---
+- name: Claim Storage Volume in VPLEX
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Claim Storage Volume
+      dellemc.vplex.dellemc_vplex_storage_volume:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ vplex_cluster }}"
+        storage_volume_name: "{{ vplex_storage_volume }}"
+        claimed_state: "{{ vplex_claimed_state }}"
+        state: "{{ vplex_state_present }}"
+
+  rescue:
+    - name: Fail if unable to claim storage volume
+      ansible.builtin.fail:
+        msg: "Unable to claim storage volume {{ vplex_storage_volume }}."
+

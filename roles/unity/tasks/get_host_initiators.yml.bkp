@@ -1,0 +1,27 @@
+---
+- name: Pause for 20 seconds
+  ansible.builtin.pause:
+    seconds: 20
+
+- name: Get fc initiators Details
+  dellemc.unity.info:
+    unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+    username: "{{ lookup('vars', array_hostname + '_username') }}"
+    password: "{{ lookup('vars', array_hostname + '_password') }}"
+    validate_certs: "{{ validate_certs }}"
+    gather_subset:
+      - fc_initiator
+  register: fc_initiator_results
+
+- name: Obtain the names of the fc initiators
+  ansible.builtin.set_fact:
+    fc_initiators: "{{ fc_initiator_results.FC_initiators | map(attribute='WWN') | list }"
+
+- name: Initalize found initiator list
+  ansible.builtin.set_fact:
+    found_initiator_list: []
+
+- name: Find initiator
+  ansible.builtin.include_tasks: find_initiator.yml
+  with_items: "{{ combined_initiators_list }}"
+

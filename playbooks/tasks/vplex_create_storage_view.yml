@@ -1,0 +1,59 @@
+---
+- name: Get storage view for the current host
+  ansible.builtin.include_role:
+    name: vplex
+    tasks_from: get_storage_view.yml
+
+- name: Create storage views
+  when: not storage_view_found_flag
+  block:
+    - name: Set array_hostname variable based on source array
+      ansible.builtin.set_fact:
+        array_hostname: "{{ vplex_array_dc if 'dc' in unity_1_array | lower else vplex_array_drc }}"
+
+    - name: Create the host aliases and zones on the switches with source vplex array
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: workflow.yml
+
+    - name: Set array_hostname variable based on target array in case of metro cluster
+      ansible.builtin.set_fact:
+        array_hostname: "{{ vplex_array_dc if 'dc' in unity_2_array | lower else vplex_array_drc }}"
+      when: is_metro
+
+    - name: Create the host aliases and zones on the switches with source vplex array
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: workflow.yml
+      when: is_metro
+
+    - name: Get host initiators to get combined_initiators_list
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: get_host_initiators.yml
+
+    - name: Rediscover initiators
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: rediscover_initiators.yml
+
+    - name: Create initiators
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: create_host_initiators.yml
+
+    - name: Create Storage Views
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: create_storage_view.yml
+
+    - name: Get storage view for the current host
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: get_storage_view.yml
+
+- name: Add volume to storage view for the current host
+  ansible.builtin.include_role:
+    name: vplex
+    tasks_from: add_volume_to_storage_view.yml
+

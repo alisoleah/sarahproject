@@ -1,0 +1,33 @@
+---
+- name: Format hosts lists to dictionary
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Initialize cleaned host list
+      ansible.builtin.set_fact:
+        cleaned_hosts: []
+        map_hosts: []
+
+    - name: Clean hostnames — strip domain if FQDN, leave IPs
+      ansible.builtin.set_fact:
+        cleaned_hosts: "{{ cleaned_hosts + [(cur_cleaned_host.split('.')[0]) if cur_cleaned_host is search('[a-zA-Z]') else cur_cleaned_host] }}"
+      loop: "{{ vcenter_cluster_hosts }}"
+      loop_control:
+        loop_var: cur_cleaned_host
+
+    - name: Print cleaned host list
+      ansible.builtin.debug:
+       msg: "Cleaned hosts list: {{ cleaned_hosts }}"
+
+    - name: Build structured hosts list with type 'esxi'
+      ansible.builtin.set_fact:
+        map_hosts: "{{ map_hosts | default([]) + [{'hostname': cur_cleaned_host, 'type': 'esxi'}] }}"
+      loop: "{{ cleaned_hosts }}"
+      loop_control:
+        loop_var: cur_cleaned_host
+
+  rescue:
+    - name: Failure message if unable to format hosts lists to dictionary
+      ansible.builtin.fail:
+        msg: "Unable to format hosts lists to dictionary."
+

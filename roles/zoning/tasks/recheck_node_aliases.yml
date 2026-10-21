@@ -1,0 +1,31 @@
+---
+- name: Get aliases for node
+  block:
+    - name: Get Aliases from device-alias database
+      cisco.nxos.nxos_command:
+        commands: show device-alias database | grep -i "{{ node_hostname }}"
+      register: host_aliases_result
+
+    - name: Set node_aliases_found_flag to true if aliases are configured
+      ansible.builtin.set_fact:
+        recheck_node_aliases_found_flag: "{{ host_aliases_result.stdout_lines[0][0] | length != 0 }}"
+
+    - name: print the aliases found flag
+      ansible.builtin.debug:
+        var: recheck_node_aliases_found_flag
+
+    - name: Extract Aliases of the node
+      ansible.builtin.set_fact:
+        node_aliases_list: "{{ host_aliases_result.stdout_lines[0] | map('regex_replace', '^.*name (\\S+) pwwn.*$', '\\1') | list }}"
+      when: recheck_node_aliases_found_flag
+
+    - name: Print found host aliases
+      ansible.builtin.debug:
+        msg: "The following device aliases {{ node_aliases_list }} are found on the switch for the node {{ node_hostname }}"
+      when: recheck_node_aliases_found_flag
+
+  rescue:
+    - name: This task runs if the previous task fails
+      ansible.builtin.fail:
+        msg: "Unable to obtain device aliases for the node {{ node_hostname }}"
+

@@ -1,0 +1,22 @@
+---
+- name: Create Array Device Aliases Play
+  hosts: switch1,switch2
+  gather_facts: false
+  vars_files:
+    - ../vars/storage_array_vars.yml
+    - ../vars/san_create_array_device_aliases_vars.yml
+  tasks:
+    - name: Get the PWWNs of the storage array
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: get_storage_array_pwwns
+
+    - name: Get port info for the obtained PWWNs of the storage array
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: get_storage_array_ports_info
+
+    - name: Create aliases for the storage array
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: create_array_device_aliases

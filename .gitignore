@@ -1,0 +1,28 @@
+# Archive file
+curia_phase1.tar.gz
+
+# Ansible specific
+*.retry
+.vault_pass
+*.vault
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

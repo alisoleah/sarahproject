@@ -1,0 +1,51 @@
+---
+- name: Add Volume to Storage View
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Set the virtual volume to be added to the storage view
+      ansible.builtin.set_fact:
+        storage_view_volume: "{{ distributed_virtual_volume if is_metro else virtual_volume }}"
+
+    - name: Add virtual volume to each storage view for array 1
+      dellemc.vplex.dellemc_vplex_storage_view:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_1_cluster }}"
+        storage_view_name: "{{ storage_view }}"
+        virtual_volumes: ["{{ storage_view_volume }}"]
+        virtual_volume_state: "{{ vplex_sv_present }}"
+        state: "{{ vplex_state_present }}"
+      loop: "{{ array_1_current_host_storage_views }}"
+      loop_control:
+        loop_var: storage_view
+
+    - name: Add virtual volume to each storage view for array 2
+      dellemc.vplex.dellemc_vplex_storage_view:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_2_cluster }}"
+        storage_view_name: "{{ storage_view }}"
+        virtual_volumes: ["{{ storage_view_volume }}"]
+        virtual_volume_state: "{{ vplex_sv_present }}"
+        state: "{{ vplex_state_present }}"
+      loop: "{{ array_2_current_host_storage_views }}"
+      loop_control:
+        loop_var: storage_view
+      when: is_metro
+
+    - name: Print storage views status
+      ansible.builtin.debug:
+        msg: "The volume {{ storage_view_volume }} is added to the storage views {{ current_host_storage_views }} for the host {{ node_hostname }}."
+
+  rescue:
+    - name: Fail if unable to get storage views
+      ansible.builtin.fail:
+        msg:
+          - "Unable to add the virtual volume {{ storage_view_volume }} to the storage views of the host {{ node_hostname }}."
+          - "Current host storage views are: {{ current_host_storage_views }}"
+

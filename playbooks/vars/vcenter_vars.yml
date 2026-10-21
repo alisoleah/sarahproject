@@ -1,0 +1,4 @@
+cpvlv003_vcenter_hostname: "ip"
+cpvlv003_vcenter_username: "curia\\user"
+cpvlv003_vcenter_password: "pass"
+validate_certs: false

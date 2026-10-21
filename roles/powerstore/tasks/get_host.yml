@@ -1,0 +1,32 @@
+---
+- name: Get Hosts Details from PowerStore
+  dellemc.powerstore.info:
+    array_ip: "{{ lookup('vars', array_hostname + '_array_ip') }}"
+    user: "{{ lookup('vars', array_hostname + '_user') }}"
+    password: "{{ lookup('vars', array_hostname + '_password') }}"
+    validate_certs: "{{ lookup('vars', array_hostname + '_validate_certs') }}"
+    gather_subset:
+      - host
+    all_pages: true
+  register: host_results
+
+- name: Obtain the names of the hosts
+  ansible.builtin.set_fact:
+    host_names: "{{ host_results.Hosts | map(attribute='name') | list }}"
+
+- name: Look for the host in the hosts found
+  ansible.builtin.set_fact:
+    found_host: "{{ host_names | select('search', node_hostname) | list }}"
+
+- name: Set found_host_flag
+  ansible.builtin.set_fact:
+    found_host_flag: "{{ found_host | length > 0 }}"
+
+- name: Set foundhost
+  ansible.builtin.set_fact:
+    found_host: "{{ found_host[0] }}"
+  when: found_host_flag
+
+- name: Print the name of the found host
+  ansible.builtin.debug:
+    msg: "Found: {{ found_host_flag }} Host: {{ found_host }}"

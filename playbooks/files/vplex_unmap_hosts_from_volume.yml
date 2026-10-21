@@ -1,0 +1,64 @@
+---
+- name: UnMap hosts from volume in vplex
+  hosts: localhost
+  strategy: linear
+  gather_facts: false
+  roles:
+    - unity
+    - vplex
+    - common
+    - zoning
+
+  vars_files:
+    - ../vars/vplex_unmap_hosts_from_volume_vars.yml
+    - ../vars/storage_array_vars.yml
+    - ../vars/vcenter_vars.yml
+
+  tasks:
+    - name: Get distributed Volume
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: get_distributed_volume.yml
+
+    - name: Set distributed volume parameters
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: set_distributed_volume_parameters.yml
+      when: is_dist_vol
+
+    - name: Set volume parameters
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: set_volume_parameters.yml
+      when: not is_dist_vol
+
+    - name: Set the vplex array and distributed volume
+      ansible.builtin.set_fact:
+        vplex_array: "{{ vplex_array_dc }}"
+        distributed_virtual_volume: "{{ volume_name }}"
+        virtual_volume: "{{ volume_name }}"
+
+    - name: Format hosts variable if it is a vsphere cluster
+      when: is_vcenter_cluster
+      block:
+        - name: Find the hostnames of a vsphere cluster
+          ansible.builtin.include_role:
+            name: vmware
+            tasks_from: get_cluster_hosts.yml
+
+        - name: Format hosts lists to dictionary
+          ansible.builtin.include_role:
+            name: vmware
+            tasks_from: format_hosts_to_dict.yml
+
+    - name: Remove volume from storage view
+      ansible.builtin.include_tasks: ../tasks/vplex_unmap_storage_view.yml
+      loop: "{{ map_hosts }}"
+      loop_control:
+        loop_var: cur_host
+      vars:
+        node_hostname: "{{ cur_host.hostname }}"
+        node_type: "{{ cur_host.type }}"
+      register: map_result
+      ignore_errors: true
+

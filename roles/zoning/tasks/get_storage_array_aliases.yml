@@ -1,0 +1,44 @@
+---
+- name: Get Storage array Aliases from switch
+  block:
+    - name: Get Storage Aliases from device-alias database
+      cisco.nxos.nxos_command:
+        commands: show device-alias database | grep -i "{{ array_hostname }}"
+      register: storage_aliases_result
+
+    - name: Set node_aliases_found_flag to true if aliases are configured
+      ansible.builtin.set_fact:
+        array_aliases_found_flag: "{{ storage_aliases_result.stdout_lines[0][0] | length != 0 }}"
+      delegate_to: localhost
+
+    - name: Set fail if no aliases found for the array
+      ansible.builtin.fail:
+        msg: "Unable to find aliases for the storage array on the switch."
+      delegate_to: localhost
+      when: not array_aliases_found_flag
+
+    - name: Extract Aliases of the array
+      ansible.builtin.set_fact:
+        array_aliases_list: "{{ storage_aliases_result.stdout_lines[0] | map('regex_replace', '^.*name (\\S+) pwwn.*$', '\\1') | list }}"
+      delegate_to: localhost
+
+    - name: Remove aliases ending with 'wan' or 'be'
+      ansible.builtin.set_fact:
+        array_aliases_list: >-
+          {{
+            array_aliases_list | reject("search", "wan$") | reject("search", "be$") | list
+          }}
+
+    - name: Print found host aliases
+      ansible.builtin.debug:
+        msg: "The following aliases {{ array_aliases_list }} are found on the switch for the array {{ array_hostname }}"
+      delegate_to: localhost
+
+  rescue:
+    - name: This task runs if no storage array aliases found
+      ansible.builtin.fail:
+        msg: |
+          Unable to find aliases for the storage array {{ array_hostname }} on the switch.
+          If this is expected for that switch, you can ignore this failure message.
+          Otherwise, please create the aliases manually and re-run the playbook.
+

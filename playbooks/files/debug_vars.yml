@@ -1,0 +1,51 @@
+---
+# Debug playbook to find where node_hostname is coming from
+- name: Debug variable sources
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: Show all variables
+      ansible.builtin.debug:
+        msg: "ALL VARS: {{ ansible_facts | default({}) }}"
+
+    - name: Show hostvars
+      ansible.builtin.debug:
+        msg: "HOSTVARS: {{ hostvars[inventory_hostname] }}"
+
+    - name: Check if node_hostname is defined
+      ansible.builtin.debug:
+        msg: "node_hostname defined: {{ node_hostname is defined }}"
+
+    - name: Show node_hostname value
+      ansible.builtin.debug:
+        msg: "node_hostname value: {{ node_hostname | default('NOT_DEFINED') }}"
+
+    - name: Show where node_hostname might be defined
+      ansible.builtin.debug:
+        msg: "Checking common sources..."
+
+    - name: Check group_vars
+      ansible.builtin.debug:
+        msg: "No group_vars found in common locations"
+
+    - name: Check if there's a test vars file
+      ansible.builtin.stat:
+        path: /home/sarah_gouda/curia_phase1/playbooks/vars/powerstore_test_get_host_vars.yml
+      register: test_vars_file
+
+    - name: Show test vars file status
+      ansible.builtin.debug:
+        msg: "Test vars file exists: {{ test_vars_file.stat.exists }}"
+
+    - name: Read test vars file if it exists
+      ansible.builtin.slurp:
+        src: /home/sarah_gouda/curia_phase1/playbooks/vars/powerstore_test_get_host_vars.yml
+      register: test_vars_content
+      when: test_vars_file.stat.exists
+
+    - name: Show test vars content
+      ansible.builtin.debug:
+        msg: "{{ test_vars_content.content | b64decode }}"
+      when: test_vars_file.stat.exists

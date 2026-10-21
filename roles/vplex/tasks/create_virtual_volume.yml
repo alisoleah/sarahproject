@@ -1,0 +1,26 @@
+---
+- name: Create local virtual volume in VPLEX
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Set virtual volume name
+      ansible.builtin.set_fact:
+        virtual_volume: "virtual_volume_{{ volume_name }}"
+
+    - name: Create a virtual volume
+      dellemc.vplex.dellemc_vplex_virtual_volume:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_1_cluster }}"
+        virtual_volume_name: "{{ virtual_volume }}"
+        supporting_device_name: "{{ array_1_device }}"
+        thin_enable: "{{ is_thin }}"
+        state: "{{ vplex_state_present }}"
+
+  rescue:
+    - name: Fail if unable to create virtual volume.
+      ansible.builtin.fail:
+        msg: "Unable to create virtual volume."
+

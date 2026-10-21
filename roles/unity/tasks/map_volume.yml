@@ -1,0 +1,21 @@
+---
+- name: Map volume to hosts
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Map volume to hosts by host_name
+      dellemc.unity.volume:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ validate_certs }}"
+        vol_name: "{{ vol_name }}"
+        host_name: "{{ found_host }}"
+        mapping_state: "{{ state_mapped }}"
+        state: "{{ state_present }}"
+
+  rescue:
+    - name: Print Failure message in case of mapping issue
+      ansible.builtin.fail:
+        msg: "Unable to map the node {{ node_hostname }} to the volume {{ vol_name }}"
+

@@ -1,0 +1,21 @@
+---
+- name: Map volume to host on PowerStore
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Map volume to host
+      dellemc.powerstore.volume:
+        array_ip: "{{ lookup('vars', array_hostname + '_array_ip') }}"
+        user: "{{ lookup('vars', array_hostname + '_user') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        validate_certs: "{{ lookup('vars', array_hostname + '_validate_certs') }}"
+        vol_name: "{{ vol_name }}"
+        host: "{{ found_host }}"
+        mapping_state: "{{ state_mapped }}"
+        hlu: "{{ hlu | default(omit) }}"
+        state: "{{ state_present }}"
+
+  rescue:
+    - name: Print failure message in case of mapping issue
+      ansible.builtin.fail:
+        msg: "Unable to map the host {{ found_host }} to the volume {{ vol_name }}"

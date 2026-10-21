@@ -1,0 +1,48 @@
+---
+# Simple test for PowerStore host creation (no switches required)
+# This tests only the PowerStore host creation part
+
+- name: Test PowerStore host creation only
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - /home/sarah_gouda/curia_phase1/playbooks/vars/storage_array_vars.yml
+
+  vars:
+    node_hostname: "SUNT5120-B"
+    node_type: "linux"
+    array_hostname: "powerstore-dc"
+    array_type: "powerstore"
+    combined_initiators_list:
+      - "10:00:00:00:c9:b6:63:92"
+      - "10:00:00:00:c9:b6:63:56"
+    state_present: "present"
+    initiator_state_present: "present-in-host"
+    validate_certs: false
+
+  tasks:
+    - name: Debug node_hostname
+      ansible.builtin.debug:
+        msg: "node_hostname is: {{ node_hostname }}"
+
+    - name: Check if host exists
+      ansible.builtin.include_tasks:
+        file: /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/get_host.yml
+
+    - name: Set initial host existence flag
+      ansible.builtin.set_fact:
+        host_existed_initially: "{{ found_host_flag }}"
+
+    - name: Create host on PowerStore (only if not found)
+      ansible.builtin.include_tasks:
+        file: /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/create_host_with_initiators.yml
+      when: not found_host_flag
+
+    - name: Verify host was created
+      ansible.builtin.include_tasks:
+        file: /home/sarah_gouda/curia_phase1/roles/powerstore/tasks/get_host.yml
+
+    - name: Print result
+      ansible.builtin.debug:
+        msg: "{{ 'Host already exists on PowerStore' if host_existed_initially else ('Host creation SUCCESS' if found_host_flag else 'Host creation FAILED') }}"

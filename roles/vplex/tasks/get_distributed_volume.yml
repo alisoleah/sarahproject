@@ -1,0 +1,28 @@
+---
+- name: Get distributed virtual volume
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Get details of distributed virtual volume using name
+      dellemc.vplex.dellemc_vplex_distributed_virtual_volume:
+        vplexhost: "{{ lookup('vars', vplex_array_dc + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array_dc + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array_dc + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        distributed_virtual_volume_name: "{{ volume_name }}"
+        state: "{{ vplex_state_present }}"
+      register: virtual_volume_info
+
+    - name: Set is_dist_vol flag
+      ansible.builtin.set_fact:
+        is_dist_vol: true
+
+  rescue:
+    - name: Set is_dist_vol flag
+      ansible.builtin.set_fact:
+        is_dist_vol: false
+
+    - name: Print info that volume is not a distributed volume
+      ansible.builtin.debug:
+        msg: "The volume {{ volume_name }} is not a distributed volume"
+

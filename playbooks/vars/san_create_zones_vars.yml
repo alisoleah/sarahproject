@@ -1,0 +1,6 @@
+node_hostname: "name"
+node_type: "windows" #esxi or windows or linux
+array_hostname: "name"
+array_type: "unity" #vplex or unity
+vcenter: "name" #add if the host is an esxi host, if windows or linux this option can be ignored
+

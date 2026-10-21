@@ -1,0 +1,22 @@
+---
+- name: Create volume in VPLEX
+  hosts: localhost
+  strategy: linear
+  gather_facts: false
+  roles:
+    - unity
+    - vplex
+
+  vars_files:
+    - ../vars/vplex_create_volume_vars.yml
+    - ../vars/storage_array_vars.yml
+    - ../vars/vcenter_vars.yml
+
+  vars:
+    distributed_virtual_volume: "dvv_drc_dc_uat02"
+
+  tasks:
+    - name:  Add distributed volumes to cg
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: add_volume_to_cg.yml

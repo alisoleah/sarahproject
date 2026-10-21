@@ -1,0 +1,7 @@
+node_hostname: "name"
+node_type: "windows" #esxi or windows or linux
+array_hostname: "unity400-dc"
+array_type: "unity"
+vol_name: "test_volume_auto"
+vcenter: "" #add if the host is an esxi host
+

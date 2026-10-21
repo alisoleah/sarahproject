@@ -1,0 +1,48 @@
+---
+- name: Create volume and map to hosts
+  hosts: switch1, switch2
+  strategy: linear
+  gather_facts: false
+  roles:
+    - unity
+    - zoning
+    - common
+
+  vars_files:
+    - ../vars/unity_create_volume_vars.yml
+    - ../vars/storage_array_vars.yml
+    - ../vars/vcenter_vars.yml
+
+  tasks:
+    - name: Create volume
+      ansible.builtin.include_role:
+        name: unity
+        tasks_from: create_volume.yml
+
+    - name: Initialize an empty hosts_list list
+      ansible.builtin.set_fact:
+        hosts_list: []
+      # run_once: true
+
+    - name: Initialize empty results lists
+      ansible.builtin.set_fact:
+        success_hosts: []
+        failed_hosts: []
+      # run_once: true
+
+    - name: Map volume to host Preparation
+      ansible.builtin.include_tasks: ../tasks/unity_map_volume_prepare.yml
+      loop: "{{ map_hosts }}"
+      loop_control:
+        loop_var: cur_host
+      vars:
+        node_hostname: "{{ cur_host.hostname }}"
+        node_type: "{{ cur_host.type }}"
+      register: map_result
+      ignore_errors: true
+
+    - name: Map volume to hosts
+      ansible.builtin.include_role:
+        name: unity
+        tasks_from: map_volume_multiple_hosts.yml
+

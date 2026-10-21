@@ -1,0 +1,298 @@
+---
+- name: Create volume in VPLEX
+  hosts: localhost
+  strategy: linear
+  gather_facts: false
+  roles:
+    - unity
+    - vplex
+
+  vars_files:
+    - ../vars/vplex_create_volume_enhanced_vars.yml
+    - ../vars/storage_array_vars.yml
+    - ../vars/vcenter_vars.yml
+
+  tasks:
+    - name: Set virtual pool config
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: set_virtual_pool_vars.yml
+
+    - name: Tasks on Array 1
+      block:
+        - name: Create Volume in Unity
+          block:
+            - name: Set array_hostname variable
+              ansible.builtin.set_fact:
+                array_hostname: "{{ unity_1_array }}"
+
+            - name: Set pool_name variable
+              ansible.builtin.set_fact:
+                pool_name: "{{ unity_1_pool }}"
+
+            - name: Set vol_name variable
+              ansible.builtin.set_fact:
+                vol_name: >-
+                  {{ volume_name }}_{{ 'dc' if 'dc' in array_hostname | lower else 'drc' if 'drc' in array_hostname | lower else 'unknown' }}
+
+            - name: Create a volume in Unity array
+              ansible.builtin.include_role:
+                name: unity
+                tasks_from: create_volume.yml
+
+            - name: Get VPLEX host in unity
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: get_vplex_unity_host.yml
+
+            - name: Set node_hostname to VPLEX host in unity
+              ansible.builtin.set_fact:
+                node_hostname: "{{ vplex_unity_host }}"
+                found_host: "{{ vplex_unity_host }}"
+
+            - name: Map volume to VPLEX host in unity
+              ansible.builtin.include_role:
+                name: unity
+                tasks_from: map_volume.yml
+
+        - name: Create Device in VPLEX
+          block:
+            - name: Get VPLEX cluster
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: get_vplex_cluster.yml
+
+            - name: Get Unity array Serial number
+              ansible.builtin.include_role:
+                name: unity
+                tasks_from: get_serial_number.yml
+
+            - name: Rediscover Array in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: rediscover_array.yml
+
+            - name: Get Volume wwn
+              ansible.builtin.set_fact:
+                vol_wwn: "{{ unity_vol_info.volume_details.wwn | string | format_wwn }}"
+
+            - name: Get Storage volume in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: get_storage_volume.yml
+
+            - name: Claim Storage volume in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: claim_storage_volume.yml
+
+            - name: Create extent in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: create_extent.yml
+
+            - name: Create device in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: create_local_device.yml
+
+            - name: Array 1 Variables
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: set_array_1_vars.yml
+
+            - name: Create local Virtual Volume if not metro cluster
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: create_virtual_volume.yml
+              when: not is_metro
+
+            - name: Print variables for local virtual volume
+              ansible.builtin.debug:
+                msg:
+                  - "virtual_volume: {{ virtual_volume }}"
+              when: not is_metro
+
+    - name: Tasks on Array 2
+      when: is_metro
+      block:
+        - name: Create Volume in Unity
+          block:
+            - name: Set array_hostname variable
+              ansible.builtin.set_fact:
+                array_hostname: "{{ unity_2_array }}"
+
+            - name: Set pool_name variable
+              ansible.builtin.set_fact:
+                pool_name: "{{ unity_2_pool }}"
+
+            - name: Set vol_name variable
+              ansible.builtin.set_fact:
+                vol_name: >-
+                  {{ volume_name }}_{{ 'dc' if 'dc' in array_hostname | lower else 'drc' if 'drc' in array_hostname | lower else 'unknown' }}
+
+            - name: Create a volume in Unity array
+              ansible.builtin.include_role:
+                name: unity
+                tasks_from: create_volume.yml
+
+            - name: Get VPLEX host in unity
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: get_vplex_unity_host.yml
+
+            - name: Set node_hostname to VPLEX host in unity
+              ansible.builtin.set_fact:
+                node_hostname: "{{ vplex_unity_host }}"
+                found_host: "{{ vplex_unity_host }}"
+
+            - name: Map volume to VPLEX host in unity
+              ansible.builtin.include_role:
+                name: unity
+                tasks_from: map_volume.yml
+
+        - name: Create Device in VPLEX
+          block:
+            - name: Get VPLEX cluster
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: get_vplex_cluster.yml
+
+            - name: Get Unity array Serial number
+              ansible.builtin.include_role:
+                name: unity
+                tasks_from: get_serial_number.yml
+
+            - name: Rediscover Array in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: rediscover_array.yml
+
+            - name: Get Volume wwn
+              ansible.builtin.set_fact:
+                vol_wwn: "{{ unity_vol_info.volume_details.wwn | string | format_wwn }}"
+
+            - name: Get Storage volume in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: get_storage_volume.yml
+
+            - name: Claim Storage volume in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: claim_storage_volume.yml
+
+            - name: Create extent in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: create_extent.yml
+
+            - name: Create device in VPLEX
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: create_local_device.yml
+
+            - name: Array 2 Variables
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: set_array_2_vars.yml
+
+            - name: Create distributed device
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: create_distributed_device.yml
+
+            - name: Pause for 120 seconds
+              ansible.builtin.pause:
+                seconds: 120
+
+            - name: Create distributed volume
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: create_distributed_volume.yml
+
+            - name:  Add distributed volumes to cg
+              ansible.builtin.include_role:
+                name: vplex
+                tasks_from: add_volume_to_cg.yml
+
+            - name: Print variables for distributed devices
+              ansible.builtin.debug:
+                msg:
+                  - "distributed_device: {{ distributed_device }}"
+                  - "distributed_virtual_volume: {{ distributed_virtual_volume }}"
+
+- name: Volume mapping and zoning in VPLEX
+  hosts: switch1, switch2
+  strategy: linear
+  gather_facts: false
+  roles:
+    - unity
+    - vplex
+    - zoning
+    - common
+    - vmware
+
+  vars_files:
+    - ../vars/vplex_create_volume_enhanced_vars.yml
+    - ../vars/storage_array_vars.yml
+    - ../vars/vcenter_vars.yml
+
+  tasks:
+    - name: Set virtual pool config
+      ansible.builtin.include_role:
+        name: vplex
+        tasks_from: set_virtual_pool_vars.yml
+
+    - name: Format hosts variable if it is a vsphere cluster
+      when: is_vcenter_cluster
+      block:
+        - name: Find the hostnames of a vsphere cluster
+          ansible.builtin.include_role:
+            name: vmware
+            tasks_from: get_cluster_hosts.yml
+
+        - name: Format hosts lists to dictionary
+          ansible.builtin.include_role:
+            name: vmware
+            tasks_from: format_hosts_to_dict.yml
+
+    - name: Set facts in preparation for volume mapping in VPLEX
+      block:
+        - name: Set facts for array_1_cluster and virtual_volume
+          ansible.builtin.set_fact:
+            array_1_cluster: "{{ vplex_cluster_dc if 'dc' in unity_1_array | lower else vplex_cluster_drc }}"
+            virtual_volume: "virtual_volume_{{ volume_name }}"
+
+        - name: Set facts if metro cluster config for array_2_cluster and distributed_virtual_volume
+          ansible.builtin.set_fact:
+            array_2_cluster: "{{ vplex_cluster_dc if 'dc' in unity_2_array | lower else vplex_cluster_drc }}"
+            distributed_virtual_volume: "distributed_virtual_volume_{{ volume_name }}"
+            source_array: >-
+              {{ "array_1" if consistency_group | lower in unity_1_array | lower else "array_2" }}
+            target_array: >-
+              {{ "array_2" if consistency_group | lower in unity_1_array | lower else "array_1" }}
+          when: is_metro
+
+        - name: Set source and target clusters and devices
+          ansible.builtin.set_fact:
+            source_cluster: "{{ lookup('vars', source_array + '_cluster') }}"
+            target_cluster: "{{ lookup('vars', target_array + '_cluster') }}"
+          when: is_metro
+
+        - name: Set fact for distributed_device
+          ansible.builtin.set_fact:
+            distributed_device: "dd_{{ volume_name }}_{{ source_cluster }}_{{ target_cluster }}"
+          when: is_metro
+
+    - name: Create Vplex storage view preparation
+      ansible.builtin.include_tasks: ../tasks/vplex_create_storage_view.yml
+      loop: "{{ map_hosts }}"
+      loop_control:
+        loop_var: cur_host
+      vars:
+        node_hostname: "{{ cur_host.hostname }}"
+        node_type: "{{ cur_host.type }}"
+      register: map_result
+      ignore_errors: true
+

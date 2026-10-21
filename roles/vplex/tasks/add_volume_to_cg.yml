@@ -1,0 +1,22 @@
+---
+- name: Add Distributed Volume to Consistency group
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Add distributed volumes to distributed cg
+      dellemc.vplex.dellemc_vplex_distributed_consistency_group:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        distributed_cg_name: "{{ consistency_group }}"
+        distributed_virtual_volumes:  ["{{ distributed_virtual_volume }}"]
+        distributed_virtual_volume_state: "{{ vplex_cg_present }}"
+        state: "{{ vplex_state_present }}"
+
+  rescue:
+    - name: Fail if unable to add Distributed Volume to Consistency group
+      ansible.builtin.fail:
+        msg:
+          - "Unable to add the distributed virtual volume {{ distributed_virtual_volume }} to the consistency group {{ consistency_group }}."
+  

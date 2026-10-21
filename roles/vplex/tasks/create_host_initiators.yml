@@ -1,0 +1,49 @@
+---
+- name: Register initiators  in VPLEX
+  delegate_to: localhost
+  run_once: true
+  block:
+
+    - name: Create host initiators in source cluster
+      dellemc.vplex.dellemc_vplex_initiator:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_1_cluster }}"
+        initiator_name: "{{ node_hostname }}_{{ item | replace(':', '') }}"
+        port_wwn: "0x{{ item | replace(':', '') }}"
+        host_type: "{{ initiator_host_type }}"
+        registered: true
+        state: "{{ vplex_state_present }}"
+      with_items: "{{ combined_initiators_list }}"
+
+    - name: Create host initiators in target cluster
+      dellemc.vplex.dellemc_vplex_initiator:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_2_cluster }}"
+        initiator_name: "{{ node_hostname }}_{{ item | replace(':', '') }}"
+        port_wwn: "0x{{ item | replace(':', '') }}"
+        host_type: "{{ initiator_host_type }}"
+        registered: true
+        state: "{{ vplex_state_present }}"
+      with_items: "{{ combined_initiators_list }}"
+      when: is_metro
+
+    - name: Initialize initiators_list
+      ansible.builtin.set_fact:
+        vplex_initiators_list: []
+
+    - name: Format each initiator and save
+      ansible.builtin.set_fact:
+        vplex_initiators_list: "{{ vplex_initiators_list + [ node_hostname ~ '_' ~ (item | replace(':', ''))] }}"
+      loop: "{{ combined_initiators_list }}"
+
+  rescue:
+    - name: Failure message if unable to create host initiators
+      ansible.builtin.fail:
+        msg: "Unable to to create initiators in vplex arrays."
+

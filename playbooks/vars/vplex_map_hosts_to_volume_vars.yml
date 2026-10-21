@@ -1,0 +1,16 @@
+# Volume variables
+volume_name: "distributed_virtual_volume_dvv_dc_uat06"
+# Hosts variables
+map_hosts: #node_type can be windows or linux or esxi
+  - hostname: "name"
+    type: "windows"
+#   - hostname: "ip"
+#     type: "windows"
+#   - hostname: "ip"
+#     type: "linux"
+#  - hostname: "name"
+#    type: "esxi"
+vcenter: "name" #add if the host is an esxi host
+vcenter_cluster_name: "TEST_AUTO_CLUSTER" #cluster name is case sensitive
+is_vcenter_cluster: false
+

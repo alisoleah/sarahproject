@@ -1,0 +1,58 @@
+---
+- name: Create Storage View
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Create a storage view for source array
+      dellemc.vplex.dellemc_vplex_storage_view:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_1_cluster }}"
+        storage_view_name: "sv_{{ node_hostname }}_{{ array_1_cluster }}"
+        ports: "{{ vplex_dc_ports if array_1_cluster == 'cluster-1' else vplex_drc_ports }}"
+        state: "{{ vplex_state_present }}"
+
+    - name: Add initiator to storage view for source array
+      dellemc.vplex.dellemc_vplex_storage_view:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_1_cluster }}"
+        storage_view_name: "sv_{{ node_hostname }}_{{ array_1_cluster }}"
+        initiators: "{{ vplex_initiators_list }}"
+        initiator_state: "{{ vplex_sv_present }}"
+        state: "{{ vplex_state_present }}"
+
+    - name: Create a storage view for target array
+      dellemc.vplex.dellemc_vplex_storage_view:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_2_cluster }}"
+        storage_view_name: "sv_{{ node_hostname }}_{{ array_2_cluster }}"
+        ports: "{{ vplex_dc_ports if array_2_cluster == 'cluster-1' else vplex_drc_ports }}"
+        state: "{{ vplex_state_present }}"
+      when: is_metro
+
+    - name: Create storage view with initiator list for target array
+      dellemc.vplex.dellemc_vplex_storage_view:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ array_2_cluster }}"
+        storage_view_name: "sv_{{ node_hostname }}_{{ array_2_cluster }}"
+        initiators: "{{ vplex_initiators_list }}"
+        initiator_state: "{{ vplex_sv_present }}"
+        state: "{{ vplex_state_present }}"
+      when: is_metro
+
+  rescue:
+    - name: Fail if unable to create storage views
+      ansible.builtin.fail:
+        msg: "Unable to create storage views for the host {{ node_hostname }}."
+

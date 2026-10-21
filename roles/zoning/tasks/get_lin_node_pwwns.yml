@@ -1,0 +1,41 @@
+---
+- name: Get and process PWWNs for linux host
+  block:
+    - name: Add a new linux host to the inventory
+      ansible.builtin.add_host:
+        name: linux
+        ansible_host: "{{ node_ip }}"
+        ansible_user: "{{ node_user }}"
+        ansible_password: "{{ node_password }}"
+        ansible_connection: ssh
+      delegate_to: localhost
+
+    - name: Run command to get WWPN (Linux)
+      ansible.builtin.shell: |
+        set -o pipefail
+        for host in /sys/class/fc_host/host*; do
+          cat "$host/port_name"  | sed 's/^0x//' | sed 's/.\{2\}/&:/g' | sed 's/:$//'
+        done
+      args:
+        executable: /bin/bash
+      register: cmd_output
+      changed_when: false
+      delegate_to: linux
+      run_once: true
+      ignore_errors: true
+
+    - name: Fail if WWPN retrieval failed
+      ansible.builtin.fail:
+        msg: "WWPN retrieval failed on Linux host"
+      when: cmd_output.unreachable is defined or cmd_output.failed
+
+    - name: Set node WWPN List (Linux)
+      ansible.builtin.set_fact:
+        node_pwwn_list: "{{ cmd_output | sort }}"
+      delegate_to: localhost
+
+  rescue:
+    - name: Error to gather linux host PWWNs
+      ansible.builtin.fail:
+        msg: "Failed to gather or process Linux HBA PWWNs for host {{ node_hostname }}"
+

@@ -1,0 +1,42 @@
+---
+- name: Get host initiators
+  block:
+    - name: Get initiators from device-alias database
+      cisco.nxos.nxos_command:
+        commands: show fcns database detail | grep -b 1 -i "{{ node_hostname }}" | grep wwn
+      register: switch_initators_result
+
+    - name: Set node_aliases_found_flag to true if aliases are configured
+      ansible.builtin.set_fact:
+        switch_initators_result: "{{ switch_initators_result.stdout_lines[0] | extract_port_names }}"
+
+    - name: Print the initiators
+      ansible.builtin.debug:
+        msg: "{{  switch_initators_result }}"
+
+    - name: Gather my_list from switch1 and switch2
+      ansible.builtin.set_fact:
+        combined_initiators_list: "{{ hostvars['switch1']['switch_initators_result'] + hostvars['switch2']['switch_initators_result'] }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Print the combined list
+      ansible.builtin.debug:
+        msg: "{{  combined_initiators_list }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Check if combined_initiators_list is empty
+      ansible.builtin.fail:
+        msg: "Unable to find initiators for the host"
+      when: combined_initiators_list | length == 0
+      delegate_to: localhost
+      run_once: true
+
+  rescue:
+    - name: Print a failure message if an error happened getting host initiator
+      ansible.builtin.fail:
+        msg: "Unable to find initiators for the host"
+      delegate_to: localhost
+      run_once: true
+

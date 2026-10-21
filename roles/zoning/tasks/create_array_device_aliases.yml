@@ -1,0 +1,18 @@
+---
+- name: Configure device aliases on the switch
+  block:
+    - name: Create device aliases on the switch
+      cisco.nxos.nxos_devicealias:
+        da: >
+          {%- set aliases = [] -%}
+          {%- for i in range(storage_pwwn_list|length) -%}
+          {%- set _ = aliases.append({'name': 'auto_' ~ array_hostname ~ '_' ~ port_name_list[i], 'pwwn': storage_pwwn_list[i]}) -%}
+          {%- endfor -%}
+          {{ aliases }}
+        distribute: "{{ hostvars[inventory_hostname]['alias_distribute_flag'] }}"
+        mode: "{{ hostvars[inventory_hostname]['alias_mode_type_flag'] }}"
+
+  rescue:
+    - name: Error to aliases on switch
+      ansible.builtin.fail:
+        msg: "Unable to create device aliases for the storage array {{ array_hostname }} on the switch {{ inventory_hostname }}"

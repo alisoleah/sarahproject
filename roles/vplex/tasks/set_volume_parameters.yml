@@ -1,0 +1,55 @@
+---
+- name: Set virtual volume parameters
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Print looking for the volume in cluster-1
+      ansible.builtin.debug:
+        msg: "Finding the volume {{ volume_name }} in {{ vplex_cluster_dc }}."
+  
+    - name: Get virtual Volume by volume name in cluster-1
+      dellemc.vplex.dellemc_vplex_virtual_volume:
+        vplexhost: "{{ lookup('vars', vplex_array_dc + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array_dc + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array_dc + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ vplex_cluster_dc }}"
+        virtual_volume_name: "{{ volume_name }}"
+        state: "{{ vplex_state_present }}"
+
+    - name: Print looking for the volume in cluster-1
+      ansible.builtin.debug:
+        msg: "Volume {{ volume_name }} found in {{ vplex_cluster_dc }}."
+
+    - name: Set source cluster
+      ansible.builtin.set_fact:
+        source_cluster: "{{ vplex_cluster_dc }}"
+        array_1_cluster: "{{ vplex_cluster_dc }}"
+        unity_1_array: "dc"
+        is_metro: false
+  rescue:
+    - name: Print looking for the volume in cluster-2
+      ansible.builtin.debug:
+        msg: "Unable to find Volume {{ volume_name }} in {{ vplex_cluster_dc }}, looking in {{ vplex_cluster_drc }}."
+
+    - name: Get virtual Volume by volume name in cluster-2
+      dellemc.vplex.dellemc_vplex_virtual_volume:
+        vplexhost: "{{ lookup('vars', vplex_array_dc + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array_dc + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array_dc + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ vplex_cluster_drc }}"
+        virtual_volume_name: "{{ volume_name }}"
+        state: "{{ vplex_state_present }}"
+
+    - name: Print looking for the volume in cluster-1
+      ansible.builtin.debug:
+        msg: "Volume {{ volume_name }} found in {{ vplex_cluster_drc }}."
+
+    - name: Set source cluster
+      ansible.builtin.set_fact:
+        source_cluster: "{{ vplex_cluster_drc }}"
+        array_1_cluster: "{{ vplex_cluster_drc }}"
+        unity_1_array: "drc"
+        is_metro: false
+

@@ -1,0 +1,5 @@
+---
+# Test variables for PowerStore get_host.yml
+node_hostname: "SUNT5120-B"  # Change this to an existing host on your PowerStore
+array_hostname: "powerstore-dc"
+array_type: "powerstore"

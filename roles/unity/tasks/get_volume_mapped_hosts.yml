@@ -1,0 +1,21 @@
+---
+- name: Map volume to hosts
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Get hosts mapped to a volume
+      unity_volume_hosts:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        vol_name: "{{ vol_name }}"
+      register: result
+
+    - name: Set the hosts variable
+      ansible.builtin.set_fact:
+        hosts_list: "{{ result.hosts }}"
+
+    - name: Print the hosts connected to the volume
+      ansible.builtin.debug:
+        msg: "The following hosts {{ hosts_list }} are connected to the volume {{ vol_name }}."
+

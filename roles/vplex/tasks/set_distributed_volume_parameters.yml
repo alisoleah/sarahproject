@@ -1,0 +1,54 @@
+---
+- name: Set distributed volume parameters
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Print that it is a distributed volume
+      ansible.builtin.debug:
+        msg: "The volume {{ volume_name }} is a distributed volume."
+
+    - name: Set distributed device
+      ansible.builtin.set_fact:
+        distributed_device: "{{ virtual_volume_info.dist_vv_details.supporting_device.split('/')[-1] }}"
+
+    - name: Get details of distributed device
+      dellemc.vplex.dellemc_vplex_distributed_device:
+        vplexhost: "{{ lookup('vars', vplex_array_dc + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array_dc + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array_dc + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        distributed_device_name: "{{ distributed_device }}"
+        state: "{{ vplex_state_present }}"
+      register: distributed_device_info
+
+    - name: Set rule_set
+      ansible.builtin.set_fact:
+        rule_set: "{{ distributed_device_info.dist_device_details.rule_set_name }}"
+
+    - name: Set source and target clusters based on rule_set
+      ansible.builtin.set_fact:
+        source_cluster: "{{ vplex_cluster_dc }}"
+        target_cluster: "{{ vplex_cluster_drc }}"
+        array_1_cluster: "{{ vplex_cluster_dc }}"
+        array_2_cluster: "{{ vplex_cluster_drc }}"
+        unity_1_array: "dc"
+        unity_2_array: "drc"
+        is_metro: true
+      when: rule_set == "cluster-1-detaches"
+
+    - name: Set source and target clusters for cluster-2-detaches
+      ansible.builtin.set_fact:
+        source_cluster: "{{ vplex_cluster_drc }}"
+        target_cluster: "{{ vplex_cluster_dc }}"
+        array_1_cluster: "{{ vplex_cluster_drc }}"
+        array_2_cluster: "{{ vplex_cluster_dc }}"
+        unity_1_array: "drc"
+        unity_2_array: "dc"
+        is_metro: true
+      when: rule_set == "cluster-2-detaches"
+
+    - name: Fail if rule_set is not recognized
+      ansible.builtin.fail:
+        msg: "Invalid rule_set '{{ rule_set }}'. Expected 'cluster-1-detaches' or 'cluster-2-detaches'."
+      when: rule_set not in ["cluster-1-detaches", "cluster-2-detaches"]
+

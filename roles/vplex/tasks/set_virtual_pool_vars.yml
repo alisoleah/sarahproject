@@ -1,0 +1,28 @@
+---
+- name: Set Virtual Pool vars
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Validate virtual pool name
+      ansible.builtin.fail:
+        msg: "Invalid virtual pool '{{ virtual_pool }}'. Must be one of: {{ virtual_pools.keys() | list }}"
+      when: virtual_pool not in virtual_pools
+
+    - name: Set virtual pool configuration
+      ansible.builtin.set_fact:
+        is_thin: "{{ virtual_pools[virtual_pool].is_thin }}"
+        compression: "{{ virtual_pools[virtual_pool].compression }}"
+        advanced_dedup: "{{ virtual_pools[virtual_pool].advanced_dedup }}"
+        vplex_array: "{{ virtual_pools[virtual_pool].vplex_array }}"
+        unity_1_array: "{{ virtual_pools[virtual_pool].unity_1_array }}"
+        unity_1_pool: "{{ virtual_pools[virtual_pool].unity_1_pool }}"
+        unity_2_array: "{{ virtual_pools[virtual_pool].unity_2_array }}"
+        unity_2_pool: "{{ virtual_pools[virtual_pool].unity_2_pool }}"
+        consistency_group: "{{ virtual_pools[virtual_pool].consistency_group }}"
+        is_metro: "{{ virtual_pools[virtual_pool].is_metro }}"
+
+  rescue:
+    - name: Fail if unable to create extent
+      ansible.builtin.fail:
+        msg: "Invalid virtual pool '{{ virtual_pool }}'. Must be one of: {{ virtual_pools.keys() | list }}"
+

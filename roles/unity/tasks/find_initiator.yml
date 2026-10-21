@@ -1,0 +1,14 @@
+---
+- name: Look for the initiator in the initiator list on storage
+  ansible.builtin.set_fact:
+    found_initiator: "{{ fc_initiators | select('search', item, ignorecase=True) | list }}"
+
+- name: Set the flag whether an initiator is found or not
+  ansible.builtin.set_fact:
+    found_initiator_flag: "{{ found_initiator | length > 0 }}"
+
+- name: Set initiators list on the array
+  ansible.builtin.set_fact:
+    found_initiator_list: "{{ found_initiator_list + found_initiator }}"
+  when: found_initiator_flag
+

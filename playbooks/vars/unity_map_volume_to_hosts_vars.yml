@@ -1,0 +1,11 @@
+map_hosts: #host.type can be windows or linux or esxi
+  - hostname: "sas1"
+    type: "windows"
+  - hostname: "name"
+    type: "esxi"
+array_hostname: "unity400-dc"
+array_type: "unity"
+#lun_id: 10
+vol_name: "test_volume_auto_uat06"
+vcenter: "name" #add if the host is an esxi host
+

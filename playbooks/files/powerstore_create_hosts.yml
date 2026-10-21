@@ -1,0 +1,51 @@
+---
+# Create hosts on PowerStore with zoning
+# This playbook:
+# 1. Runs zoning workflow on FC switches
+# 2. Registers hosts on PowerStore array
+# 3. Tracks success/failure
+
+- name: Create hosts on PowerStore
+  hosts: switch1, switch2
+  strategy: linear
+  gather_facts: false
+  roles:
+    - powerstore
+    - zoning
+    - common
+
+  vars_files:
+    - ../vars/powerstore_create_hosts_vars.yml
+    - ../vars/storage_array_vars.yml
+    - ../vars/vcenter_vars.yml
+
+  tasks:
+    - name: Initialize an empty hosts_list
+      ansible.builtin.set_fact:
+        hosts_list: []
+      run_once: true
+
+    - name: Initialize empty results lists
+      ansible.builtin.set_fact:
+        success_hosts: []
+        failed_hosts: []
+      run_once: true
+
+    - name: Create hosts
+      ansible.builtin.include_tasks: ../tasks/powerstore_host_prepare.yml
+      loop: "{{ map_hosts }}"
+      loop_control:
+        loop_var: cur_host
+      vars:
+        node_hostname: "{{ cur_host.hostname }}"
+        node_type: "{{ cur_host.type }}"
+      register: host_result
+      ignore_errors: true
+
+    - name: Print success summary
+      ansible.builtin.debug:
+        msg: "Successfully created hosts: {{ success_hosts }}"
+
+    - name: Print failure summary
+      ansible.builtin.debug:
+        msg: "Failed to create hosts: {{ failed_hosts }}"

@@ -1,0 +1,29 @@
+---
+- name: Look for the initiator in the initiator list (on source cluster)
+  ansible.builtin.set_fact:
+    found_initiator: "{{ array_1_initiators | select('search', item, ignorecase=True) | list }}"
+
+- name: Set the flag whether an initiator is found or not (on source cluster)
+  ansible.builtin.set_fact:
+    found_initiator_flag: "{{ found_initiator | length > 0 }}"
+
+- name: Set initiators list on the array (on source cluster)
+  ansible.builtin.set_fact:
+    array_1_found_initiator_list: "{{ array_1_found_initiator_list + found_initiator }}"
+  when: found_initiator_flag
+
+- name: Look for the initiator in the initiator list (on target cluster)
+  ansible.builtin.set_fact:
+    found_initiator: "{{ array_2_initiators | select('search', item, ignorecase=True) | list }}"
+  when: is_metro
+
+- name: Set the flag whether an initiator is found or not (on target cluster)
+  ansible.builtin.set_fact:
+    found_initiator_flag: "{{ found_initiator | length > 0 }}"
+  when: is_metro
+
+- name: Set initiators list on the array (on target cluster)
+  ansible.builtin.set_fact:
+    array_2_found_initiator_list: "{{ array_2_found_initiator_list + found_initiator }}"
+  when: found_initiator_flag and is_metro
+

@@ -1,0 +1,95 @@
+---
+# defaults file for vplex
+vplex_rediscover: true
+vplex_claimed_state: "claimed"
+vplex_unclaimed_state: "unclaimed"
+vplex_state_present: "present"
+vplex_state_absent: "absent"
+unity_storage_array_prefix: "EMC-CLARiiON-"
+vplex_unity_host_dc: "VPLEX-DC"
+vplex_unity_host_drc: "VPLEX-DRC"
+vplex_cluster_dc: "cluster-1"
+vplex_cluster_drc: "cluster-2"
+vplex_cg_cluster_dc: "cluster-1"
+vplex_cg_cluster_drc: "cluster-2"
+vplex_sv_present: "present-in-view"
+vplex_sv_absent: "absent-in-view"
+vplex_cg_present: "present-in-cg"
+vplex_array_dc: "vplex-dc"
+vplex_array_drc: "vplex-drc"
+initiator_host_type: "default"
+vplex_dc_ports: ["P0000000043E00775-A0-FC03", "P0000000043F00775-B0-FC02", "P0000000043F00775-B0-FC00", "P0000000043E00775-A0-FC02", "P0000000043F00775-B0-FC01", "P0000000043E00775-A0-FC00", "P0000000043E00775-A0-FC01", "P0000000043F00775-B0-FC03"] 
+vplex_drc_ports: ["P0000000043E00759-A0-FC03", "P0000000043E00759-A0-FC00", "P0000000043E00759-A0-FC01", "P0000000043F00759-B0-FC03", "P0000000043E00759-A0-FC02", "P0000000043F00759-B0-FC01", "P0000000043F00759-B0-FC00", "P0000000043F00759-B0-FC02"]
+virtual_pools:
+  vp_1:
+    is_thin: true
+    compression: true
+    advanced_dedup: false
+    vplex_array: "vplex-dc"
+    unity_1_array: "unity400-dc"
+    unity_1_pool: "Pool0"
+    unity_2_array: "unity400-drc"
+    unity_2_pool: "Pool0"
+    consistency_group: "DC"
+    is_metro: true
+
+  VM_U400DC_DRC:
+    is_thin: true
+    compression: true
+    advanced_dedup: false
+    vplex_array: "vplex-dc"
+    unity_1_array: "unity400-dc"
+    unity_1_pool: "Pool0"
+    unity_2_array: "unity400-drc"
+    unity_2_pool: "Pool0"
+    consistency_group: "DC"
+    is_metro: true
+
+  VL_U400DC:
+    is_thin: true
+    compression: true
+    advanced_dedup: false
+    vplex_array: "lex-dc"
+    unity_1_array: "unity400-dc"
+    unity_1_pool: "Pool0"
+    unity_2_array: ""
+    unity_2_pool: ""
+    consistency_group: ""
+    is_metro: false
+
+  vp_2:
+    is_thin: true
+    compression: true
+    advanced_dedup: false
+    vplex_array: "lex-dc"
+    unity_1_array: "unity400-drc"
+    unity_1_pool: "Pool0"
+    unity_2_array: "unity400-dc"
+    unity_2_pool: "Pool0"
+    consistency_group: "DRC"
+    is_metro: true
+
+  vp_3:
+    is_thin: true
+    compression: true
+    advanced_dedup: false
+    vplex_array: "vplex-dc"
+    unity_1_array: "unity400-dc"
+    unity_1_pool: "Pool0"
+    unity_2_array: ""
+    unity_2_pool: ""
+    consistency_group: ""
+    is_metro: false
+
+  vp_4:
+    is_thin: true
+    compression: true
+    advanced_dedup: false
+    vplex_array: "vplex-drc"
+    unity_1_array: "unity400-drc"
+    unity_1_pool: "Pool0"
+    unity_2_array: ""
+    unity_2_pool: ""
+    consistency_group: ""
+    is_metro: false
+

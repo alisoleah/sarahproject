@@ -1,0 +1,27 @@
+---
+- name: Get the zones of a node
+  hosts: switch1, switch2
+  gather_facts: false
+
+  vars_files:
+    - ../vars/san_host_zones_information_vars.yml
+
+  tasks:
+    # Step 1: Try to get node aliases from the switch
+    - name: Get Aliases for the node
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: get_node_aliases
+
+    - name: When Aliases are not set
+      ansible.builtin.debug:
+        msg: "Unable to find any aliases for the node {{ node_hostname }}"
+      when: not node_aliases_found_flag
+
+    # Step 2: Get the zones
+    - name: Get alias Zones
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: get_alias_zones
+      when: node_aliases_found_flag
+

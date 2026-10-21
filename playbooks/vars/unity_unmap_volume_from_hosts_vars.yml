@@ -1,0 +1,7 @@
+hosts_list: 
+  - "sas1"
+  - "0me33"
+array_hostname: "unity400-dc"
+array_type: "unity"
+vol_name: "test_volume_auto_uat02"
+

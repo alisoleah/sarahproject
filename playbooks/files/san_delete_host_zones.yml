@@ -1,0 +1,55 @@
+---
+- name: Get the zones of a node
+  hosts: switch1, switch2
+  gather_facts: false
+
+  vars_files:
+    - ../vars/san_delete_host_zones_vars.yml
+
+  tasks:
+    # Step 1: Try to get node aliases from the switch
+    - name: Get Aliases for the node
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: get_node_aliases
+
+    - name: When Aliases are not set
+      ansible.builtin.debug:
+        msg: "Unable to find any aliases for the node {{ node_hostname }}"
+      when: not node_aliases_found_flag
+
+    # Step 2: Get the zones
+    - name: Get alias Zones
+      ansible.builtin.include_role:
+        name: zoning
+        tasks_from: get_alias_zones
+      when: node_aliases_found_flag
+
+    - name: Get Zones created by automation
+      ansible.builtin.set_fact:
+        zones_output_list: "{{ zones_output_list | select('match', '^auto_') | list }}"
+      when: node_aliases_found_flag and filter_automation_zones
+
+    # Step 3: Delete the zones
+    - name: Delete zones on the switches
+      cisco.nxos.nxos_zone_zoneset:
+        zone_zoneset_details:
+          - vsan: "{{ hostvars[inventory_hostname]['zone_vsan'] }}"
+            zone:
+              - name: "{{ item }}"
+                remove: true
+            zoneset:
+              - action: activate
+                name:  "{{ hostvars[inventory_hostname]['zoneset_name'] }}"
+      loop: "{{ zones_output_list }}"
+      when: node_aliases_found_flag
+
+    # Step 4: Delete host aliases if flag is true
+    - name: Delete alias on the switches
+      cisco.nxos.nxos_devicealias:
+        da:
+          - name: "{{ item }}"
+            remove: true
+      loop: "{{ node_aliases_list }}"
+      when: delete_alias_flag and node_aliases_found_flag
+

@@ -1,0 +1,21 @@
+# Volume variables
+volume_name: "dvv_dc_uat07"
+description: "my dvv_dc_drc_uat05 description"
+size_gb: 5
+virtual_pool: "VL_U400DC"
+# Hosts variables
+#map_hosts: [] #node_type can be windows or linux or esxi
+map_hosts:
+  - hostname: "name"
+    type: "windows"
+#   - hostname: "ip"
+#     type: "windows"
+#   - hostname: "ip"
+#     type: "linux"
+  - hostname: "name"
+    type: "esxi"
+vcenter: "name" #add if the host is an esxi host
+vcenter_cluster_name: "TEST_AUTO_CLUSTER" #cluster name is case sensitive
+is_vcenter_cluster: true
+
+

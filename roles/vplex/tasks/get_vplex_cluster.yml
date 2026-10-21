@@ -1,0 +1,14 @@
+---
+- name: Get Vplex cluster
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Validate if array_hostname is invalid
+      ansible.builtin.fail:
+        msg: "array_hostname '{{ array_hostname }}' is invalid."
+      when: "'dc' not in array_hostname | lower and 'drc' not in array_hostname | lower"
+
+    - name: Set vplex_cluster to cluster-1 or cluster-2
+      ansible.builtin.set_fact:
+        vplex_cluster: "{{ vplex_cluster_drc if 'drc' in array_hostname | lower else vplex_cluster_dc if 'dc' in array_hostname | lower else '' }}"
+

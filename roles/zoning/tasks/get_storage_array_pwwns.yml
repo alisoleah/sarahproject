@@ -1,0 +1,43 @@
+---
+- name: Retrieve and set storage WWPN list from storage array
+  delegate_to: localhost
+  block:
+    - name: Obtain WWPN list from Unity system
+      unity_fc_ports:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+      register: result
+      when: array_type == 'unity'
+
+    - name: Set storage WWPN List (Unity)
+      ansible.builtin.set_fact:
+        storage_pwwn_list: "{{ result.wwpn_list | sort }}"
+      when: array_type == 'unity'
+
+    - name: Retrieve WWPN list from VPLEX system
+      vplex_fc_ports:
+        vplexhost: "{{ lookup('vars', array_hostname + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', array_hostname + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', array_hostname + '_vplexpassword') }}"
+      register: result
+      when: array_type == 'vplex'
+
+    - name: Set storage WWPN List (VPLEX)
+      ansible.builtin.set_fact:
+        storage_pwwn_list: "{{ result.wwpn_list | sort }}"
+      when: array_type == 'vplex'
+
+    - name: Fail if storage WWPN list is empty
+      ansible.builtin.fail:
+        msg: "The retrieved PWWN list from array {{ array_hostname }} is empty."
+      when: storage_pwwn_list | length == 0
+
+    - name: Print WWPN list for the storage array
+      ansible.builtin.debug:
+        msg: "The retrieved PWWN list from array {{ array_hostname }} is {{ storage_pwwn_list }}."
+
+  rescue:
+    - name: Error during WWPN list retrieval from storage array
+      ansible.builtin.fail:
+        msg: "Unable to obtain the HBAs PWWN list for the array {{ array_hostname }}."

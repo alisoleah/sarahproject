@@ -1,0 +1,60 @@
+---
+- name: Create zones between array and node
+  block:
+    - name: Create zones on the switches
+      cisco.nxos.nxos_zone_zoneset:
+        zone_zoneset_details:
+          - mode: "{{ hostvars[inventory_hostname]['vsan_mode_type_flag'] }}"
+            vsan: "{{ hostvars[inventory_hostname]['zone_vsan'] }}"
+            zone: >
+              {%- set zone_list = [] -%}
+              {%- for i in range(node_aliases_list|length) -%}
+              {%- for j in range(array_aliases_list|length) -%}
+              {%- set members = [{ 'device_alias': node_aliases_list[i]}, { 'device_alias': array_aliases_list[j]}] -%}
+              {%- set _ = zone_list.append({'name': 'auto_' ~ node_aliases_list[i] ~ '_' ~ array_aliases_list[j] , 'members': members}) -%}
+              {%- endfor -%}
+              {%- endfor -%}
+              {{ zone_list }}
+            zoneset:
+              - action: activate
+                name: "{{ hostvars[inventory_hostname]['zoneset_name'] }}"
+                members: >
+                  {%- set zone_members = [] -%}
+                  {%- for i in range(node_aliases_list|length) -%}
+                  {%- for j in range(array_aliases_list|length) -%}
+                  {%- set _ = zone_members.append({'name': 'auto_' ~ node_aliases_list[i] ~ '_' ~ array_aliases_list[j]}) -%}
+                  {%- endfor -%}
+                  {%- endfor -%}
+                  {{ zone_members }}
+
+  rescue:
+    - name: Fallback by removing the created zones
+      cisco.nxos.nxos_zone_zoneset:
+        zone_zoneset_details:
+          - mode: "{{ hostvars[inventory_hostname]['vsan_mode_type_flag'] }}"
+            vsan: "{{ hostvars[inventory_hostname]['zone_vsan'] }}"
+            zone: >
+              {%- set zone_list = [] -%}
+              {%- for i in range(node_aliases_list|length) -%}
+              {%- for j in range(array_aliases_list|length) -%}
+              {%- set members = [{ 'device_alias': node_aliases_list[i]}, { 'device_alias': array_aliases_list[j]}] -%}
+              {%- set _ = zone_list.append({'name': 'auto_' ~ node_aliases_list[i] ~ '_' ~ array_aliases_list[j] , 'members': members, 'remove': 'true'}) -%}
+              {%- endfor -%}
+              {%- endfor -%}
+              {{ zone_list }}
+            zoneset:
+              - action: activate
+                name: "{{ hostvars[inventory_hostname]['zoneset_name'] }}"
+                members: >
+                  {%- set zone_members = [] -%}
+                  {%- for i in range(node_aliases_list|length) -%}
+                  {%- for j in range(array_aliases_list|length) -%}
+                  {%- set _ = zone_members.append({'name': 'auto_' ~ node_aliases_list[i] ~ '_' ~ array_aliases_list[j], 'remove': 'true'}) -%}
+                  {%- endfor -%}
+                  {%- endfor -%}
+                  {{ zone_members }}
+
+    - name: Error to create zones on switch
+      ansible.builtin.fail:
+        msg: "Unable to create zones for the node {{ node_hostname }} and the array {{ array_hostname }} on switch {{ inventory_hostname }}"
+      delegate_to: localhost

@@ -1,0 +1,25 @@
+---
+- name: Get Detach Rule
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Get consistency group
+      dellemc.vplex.dellemc_vplex_consistency_group:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "cluster-1"
+        cg_name: "DC"
+        state: "{{ vplex_state_present }}"
+      register: cg_info
+
+    - name: Print consistency group Info
+      ansible.builtin.debug:
+        msg: "{{ cg_info }}"
+
+  rescue:
+    - name: Fail if unable to get consistency group information
+      ansible.builtin.fail:
+        msg: "Unable to get the detach rule for the consistency group {{ consistency_group }}."
+

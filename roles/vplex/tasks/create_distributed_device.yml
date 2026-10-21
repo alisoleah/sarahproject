@@ -1,0 +1,43 @@
+---
+- name: Create distributed device in VPLEX
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Determine source and target arrays
+      set_fact:
+        source_array: >-
+          {{ "array_1" if consistency_group | lower in unity_1_array | lower else "array_2" }}
+        target_array: >-
+          {{ "array_2" if consistency_group | lower in unity_1_array | lower else "array_1" }}
+
+    - name: Set source and target clusters and devices
+      set_fact:
+        source_cluster: "{{ lookup('vars', source_array + '_cluster') }}"
+        target_cluster: "{{ lookup('vars', target_array + '_cluster') }}"
+        source_device: "{{ lookup('vars', source_array + '_device') }}"
+        target_device: "{{ lookup('vars', target_array + '_device') }}"
+
+    - name: Set distributed device name
+      set_fact:
+        distributed_device: "dd_{{ volume_name }}_{{ source_cluster }}_{{ target_cluster }}"
+
+    - name: Create a distributed device
+      dellemc.vplex.dellemc_vplex_distributed_device:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        distributed_device_name: "{{ distributed_device }}"
+        target_cluster: "{{ target_cluster }}"
+        target_device: "{{ target_device }}"
+        source_cluster: "{{ source_cluster }}"
+        source_device: "{{ source_device }}"
+        rule_set: "{{ source_cluster }}-detaches"
+        sync: true
+        state: "{{ vplex_state_present }}"
+
+  rescue:
+    - name: Fail if unable to create device
+      ansible.builtin.fail:
+        msg: "Unable to create distributed device."
+

@@ -1,0 +1,25 @@
+---
+- name: Get Vplex Storage volume
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Get VPLEX Storage volume
+      dellemc.vplex.dellemc_vplex_gatherfacts:
+        vplexhost: "{{ lookup('vars', vplex_array + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', vplex_array + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', vplex_array + '_vplexpassword') }}"
+        verifycert: "{{ verifycert }}"
+        cluster_name: "{{ vplex_cluster }}"
+        gather_subset:
+          - stor_vol
+      register: vplex_info
+
+    - name: Set vplex_storage_volume variable
+      ansible.builtin.set_fact:
+        vplex_storage_volume: "{{ vplex_info.StorageVolumes | select('search', vol_wwn) | first }}"
+
+  rescue:
+    - name: Fail if unable to get storage volume
+      ansible.builtin.fail:
+        msg: "Unable to obtain storage volume for the volume {{ vol_name }} in cluster {{ vplex_cluster }}."
+

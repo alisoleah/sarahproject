@@ -1,0 +1,15 @@
+---
+- name: List unity pools
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../vars/unity_list_storage_pools_vars.yml
+    - ../vars/storage_array_vars.yml
+
+  tasks:
+    - name: Get storage Pools
+      ansible.builtin.include_role:
+        name: unity
+        tasks_from: get_storage_pools.yml
+

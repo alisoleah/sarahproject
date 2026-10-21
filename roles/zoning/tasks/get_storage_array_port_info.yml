@@ -1,0 +1,36 @@
+---
+- name: Retrieve and set port info based on array type
+  delegate_to: localhost
+  block:
+    - name: Retrieve port info from Unity system
+      unity_port_info:
+        unispherehost: "{{ lookup('vars', array_hostname + '_unispherehost') }}"
+        username: "{{ lookup('vars', array_hostname + '_username') }}"
+        password: "{{ lookup('vars', array_hostname + '_password') }}"
+        pwwn: "{{ pwwn }}"
+      register: result
+      when: array_type == 'unity'
+
+    - name: Set port info for Unity
+      ansible.builtin.set_fact:
+        port_name: "{{ result.port_name }}"
+      when: array_type == 'unity'
+
+    - name: Retrieve port info from VPLEX system
+      vplex_port_info:
+        vplexhost: "{{ lookup('vars', array_hostname + '_vplexhost') }}"
+        vplexuser: "{{ lookup('vars', array_hostname + '_vplexuser') }}"
+        vplexpassword: "{{ lookup('vars', array_hostname + '_vplexpassword') }}"
+        pwwn: "{{ pwwn }}"
+      register: result
+      when: array_type == 'vplex'
+
+    - name: Set port info for VPLEX
+      ansible.builtin.set_fact:
+        port_name: "{{ result.port_name }}"
+      when: array_type == 'vplex'
+
+  rescue:
+    - name: Error obtaining storage array PWWNs
+      ansible.builtin.fail:
+        msg: "Failed to obatin the HBA port info for the PWWN {{ pwwn }} for the array {{ array_hostname }}."

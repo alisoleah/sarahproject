@@ -1,0 +1,18 @@
+---
+- name: Get storage view for the current host
+  ansible.builtin.include_role:
+    name: vplex
+    tasks_from: get_storage_view.yml
+
+- name: Set views to empty arrays if not found
+  ansible.builtin.set_fact:
+    array_1_current_host_storage_views: []
+    array_2_current_host_storage_views: []
+    current_host_storage_views: []
+  when: not storage_view_found_flag
+
+- name: Remove volume from storage view for the current host
+  ansible.builtin.include_role:
+    name: vplex
+    tasks_from: remove_volume_from_storage_view.yml
+

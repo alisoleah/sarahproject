@@ -1,0 +1,29 @@
+is_metro: true # Boolean to specify if it is a metro cluster configuration or not
+# Volume variables
+volume_name: "test_auto_vol_3"
+description: "my test_auto_vol_3 description"
+size_gb: 10
+is_thin: true
+compression: true
+advanced_dedup: false
+# Arrays variables
+vplex_array: "array_name"
+unity_1_array: "array_name"
+unity_1_pool: "Pool0"
+unity_2_array: "array_name"
+unity_2_pool: "Pool0"
+consistency_group: "DRC" # Should be "DC" or "DRC"
+# Hosts variables
+map_hosts: #node_type can be windows or linux or esxi
+#  - hostname: "name"
+#    type: "windows"
+#   - hostname: "ip"
+#     type: "windows"
+#   - hostname: "name"
+#     type: "linux"
+   - hostname: "name"
+     type: "esxi"
+vcenter: "name" #add if the host is an esxi host
+vcenter_cluster_name: "PROD" #cluster name is case sensitive
+is_vcenter_cluster: true
+
